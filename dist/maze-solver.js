@@ -21,62 +21,104 @@ class MazeSolver {
         return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
     }
     solve(start, end) {
+        // 為了向後相容，保留舊的 solve 方法，但使其呼叫新的雙向版本
+        return this.solveBidirectional(start, end);
+    }
+    /**
+     * 使用「雙向 A* 演算法」來解決迷宮，效能更佳。
+     * @param start 起點座標
+     * @param end 終點座標
+     * @returns {Cell[]} 從起點到終點的路徑，如果找不到則回傳空陣列。
+     */
+    solveBidirectional(start, end) {
         const startCell = this.grid[start.y][start.x];
         const endCell = this.grid[end.y][end.x];
-        // openSet: 使用優先權佇列來儲存待評估的節點，fScore 越低優先權越高。
-        const openSet = new priority_queue_1.PriorityQueue();
-        // closedSet: 儲存已經評估過的節點，避免重複處理。
-        const closedSet = new Set();
-        // cameFrom: 記錄每個節點在最短路徑上的前一個節點
-        const cameFrom = new Map();
-        // gScore: 記錄從起點到目前節點的已知最低成本
-        const gScore = new Map();
-        gScore.set(startCell, 0);
-        // 我們直接將 fScore 作為優先權插入佇列
-        const startFScore = this.heuristic(startCell, endCell);
-        openSet.insert(startCell, startFScore);
-        while (!openSet.isEmpty()) {
-            // 從 openSet 中取出 fScore 最低的節點
-            const currentCell = openSet.extractMin();
-            // 如果我們已經處理過這個節點，就跳過。
-            // 這是必要的，因為我們可能會將同一個節點以不同的 fScore 多次加入佇列。
-            if (closedSet.has(currentCell)) {
+        if (startCell === endCell) {
+            return [startCell];
+        }
+        // --- 前向搜尋的資料結構 ---
+        const openSetForward = new priority_queue_1.PriorityQueue();
+        const closedSetForward = new Set();
+        const cameFromForward = new Map();
+        const gScoreForward = new Map();
+        gScoreForward.set(startCell, 0);
+        openSetForward.insert(startCell, this.heuristic(startCell, endCell));
+        // --- 後向搜尋的資料結構 ---
+        const openSetBackward = new priority_queue_1.PriorityQueue();
+        const closedSetBackward = new Set();
+        const cameFromBackward = new Map();
+        const gScoreBackward = new Map();
+        gScoreBackward.set(endCell, 0);
+        openSetBackward.insert(endCell, this.heuristic(endCell, startCell));
+        let meetingNode = null;
+        while (!openSetForward.isEmpty() && !openSetBackward.isEmpty()) {
+            // --- 前向搜尋步驟 ---
+            const currentForward = openSetForward.extractMin();
+            if (closedSetForward.has(currentForward))
                 continue;
+            closedSetForward.add(currentForward);
+            // 檢查是否與後向搜尋的已訪問集合相遇
+            if (closedSetBackward.has(currentForward)) {
+                meetingNode = currentForward;
+                break;
             }
-            closedSet.add(currentCell);
-            if (currentCell === endCell) {
-                // 已到達終點，回溯路徑
-                const path = [];
-                let current = endCell;
-                while (current) {
-                    path.unshift(current);
-                    current = cameFrom.get(current) || null;
-                }
-                return path;
+            this._expandNeighbors(currentForward, endCell, gScoreForward, cameFromForward, openSetForward);
+            // --- 後向搜尋步驟 ---
+            const currentBackward = openSetBackward.extractMin();
+            if (closedSetBackward.has(currentBackward))
+                continue;
+            closedSetBackward.add(currentBackward);
+            // 檢查是否與前向搜尋的已訪問集合相遇
+            if (closedSetForward.has(currentBackward)) {
+                meetingNode = currentBackward;
+                break;
             }
-            const { x, y, walls } = currentCell;
-            const traversableNeighbors = [];
-            if (!walls.top && y > 0)
-                traversableNeighbors.push(this.grid[y - 1][x]);
-            if (!walls.right && x < this.width - 1)
-                traversableNeighbors.push(this.grid[y][x + 1]);
-            if (!walls.bottom && y < this.height - 1)
-                traversableNeighbors.push(this.grid[y + 1][x]);
-            if (!walls.left && x > 0)
-                traversableNeighbors.push(this.grid[y][x - 1]);
-            for (const neighbor of traversableNeighbors) {
-                // tentativeGScore 是從起點經過 currentCell 到達 neighbor 的距離
-                const tentativeGScore = (gScore.get(currentCell) ?? Infinity) + 1;
-                if (tentativeGScore < (gScore.get(neighbor) ?? Infinity)) {
-                    // 這條到達 neighbor 的路徑比之前任何路徑都好，記錄下來！
-                    cameFrom.set(neighbor, currentCell);
-                    gScore.set(neighbor, tentativeGScore);
-                    const neighborFScore = tentativeGScore + this.heuristic(neighbor, endCell);
-                    openSet.insert(neighbor, neighborFScore);
-                }
-            }
+            this._expandNeighbors(currentBackward, startCell, gScoreBackward, cameFromBackward, openSetBackward);
+        }
+        if (meetingNode) {
+            const pathForward = this._reconstructPath(cameFromForward, meetingNode);
+            const pathBackward = this._reconstructPath(cameFromBackward, meetingNode);
+            pathBackward.reverse();
+            return pathForward.concat(pathBackward.slice(1));
         }
         return []; // 找不到路徑
+    }
+    /**
+     * 擴展一個節點的鄰居，計算分數並將其加入 openSet。
+     * @private
+     */
+    _expandNeighbors(currentCell, goalCell, gScore, cameFrom, openSet) {
+        const { x, y, walls } = currentCell;
+        const traversableNeighbors = [];
+        if (!walls.top && y > 0)
+            traversableNeighbors.push(this.grid[y - 1][x]);
+        if (!walls.right && x < this.width - 1)
+            traversableNeighbors.push(this.grid[y][x + 1]);
+        if (!walls.bottom && y < this.height - 1)
+            traversableNeighbors.push(this.grid[y + 1][x]);
+        if (!walls.left && x > 0)
+            traversableNeighbors.push(this.grid[y][x - 1]);
+        for (const neighbor of traversableNeighbors) {
+            const tentativeGScore = (gScore.get(currentCell) ?? Infinity) + 1;
+            if (tentativeGScore < (gScore.get(neighbor) ?? Infinity)) {
+                cameFrom.set(neighbor, currentCell);
+                gScore.set(neighbor, tentativeGScore);
+                const fScore = tentativeGScore + this.heuristic(neighbor, goalCell);
+                openSet.insert(neighbor, fScore);
+            }
+        }
+    }
+    /**
+     * 從 cameFrom 映射中回溯並建構路徑。
+     * @private
+     */
+    _reconstructPath(cameFrom, current) {
+        const path = [current];
+        let temp = current;
+        while ((temp = cameFrom.get(temp))) {
+            path.unshift(temp);
+        }
+        return path;
     }
 }
 exports.MazeSolver = MazeSolver;
