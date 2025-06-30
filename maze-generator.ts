@@ -1,4 +1,5 @@
 import type { Cell, MazeGenerationAlgorithm, MazeGeneratorOptions } from './types';
+import { getNeighbors, getUnvisitedNeighbors, removeWalls } from './maze-utils';
 
 /**
  * 並查集 (Disjoint Set Union) 資料結構，用於 Kruskal 演算法。
@@ -181,7 +182,7 @@ export class MazeGenerator {
     while (this.stack.length > 0) {
       // 查看堆疊頂端的儲存格，但不將其彈出
       const currentCell = this.stack[this.stack.length - 1];
-      const neighbors = this.getUnvisitedNeighbors(currentCell);
+      const neighbors = getUnvisitedNeighbors(currentCell, this.grid, this.width, this.height);
 
       // 3. 如果有未訪問的鄰居
       if (neighbors.length > 0) {
@@ -208,7 +209,7 @@ export class MazeGenerator {
           nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
         }
         // 打通牆壁
-        this.removeWalls(currentCell, nextCell);
+        removeWalls(currentCell, nextCell);
         // 將鄰居標記為已訪問並推入堆疊
         nextCell.visited = true;
         this.stack.push(nextCell);
@@ -250,7 +251,7 @@ export class MazeGenerator {
       // If the cell on the other side is not yet part of the maze
       if (!to.visited) {
         // 打通牆壁，建立通道
-        this.removeWalls(from, to);
+        removeWalls(from, to);
         // 將新的儲存格標記為迷宮的一部分
         to.visited = true;
         // 將新儲存格的牆壁加入到邊界列表中
@@ -288,7 +289,7 @@ export class MazeGenerator {
       const { c1, c2 } = wall;
       if (!dsu.connected(c1, c2)) {
         dsu.union(c1, c2);
-        this.removeWalls(c1, c2);
+        removeWalls(c1, c2);
       }
     }
 
@@ -320,7 +321,7 @@ export class MazeGenerator {
 
       // 3. 進行「抹除迴圈的隨機遊走」，直到碰到一個已在迷宮中的儲存格。
       while (!current.visited) {
-        const neighbors = this.getNeighbors(current);
+        const neighbors = getNeighbors(current, this.grid, this.width, this.height);
         const next = neighbors[Math.floor(this.random() * neighbors.length)];
 
         const existingIndex = walkPath.indexOf(next);
@@ -335,7 +336,7 @@ export class MazeGenerator {
 
       // 4. 將完成的遊走路徑刻入迷宮中。
       for (let i = 0; i < walkPath.length - 1; i++) {
-        this.removeWalls(walkPath[i], walkPath[i + 1]);
+        removeWalls(walkPath[i], walkPath[i + 1]);
         // Mark cells as visited now, so future walks can find the maze.
         walkPath[i].visited = true;
       }
@@ -383,12 +384,12 @@ export class MazeGenerator {
       const currentCell = activeSet[index];
 
       // 3b. 尋找該儲存格的未訪問鄰居
-      const neighbors = this.getUnvisitedNeighbors(currentCell);
+      const neighbors = getUnvisitedNeighbors(currentCell, this.grid, this.width, this.height);
 
       if (neighbors.length > 0) {
         // 3c. 如果有未訪問的鄰居，隨機選擇一個
         const nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
-        this.removeWalls(currentCell, nextCell);
+        removeWalls(currentCell, nextCell);
         nextCell.visited = true;
         activeSet.push(nextCell); // 將新儲存格加入作用中列表
       } else {
@@ -432,7 +433,7 @@ export class MazeGenerator {
         // 從可能的鄰居中隨機選擇一個來打通牆壁
         if (neighborsToCarve.length > 0) {
           const neighbor = neighborsToCarve[Math.floor(this.random() * neighborsToCarve.length)];
-          this.removeWalls(cell, neighbor);
+          removeWalls(cell, neighbor);
         }
       }
     }
@@ -455,12 +456,12 @@ export class MazeGenerator {
     // 3. 當還有未訪問的儲存格時，持續進行隨機遊走
     while (unvisitedCount > 0) {
       // 3a. 隨機選擇一個鄰居
-      const neighbors = this.getNeighbors(currentCell);
+      const neighbors = getNeighbors(currentCell, this.grid, this.width, this.height);
       const nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
 
       // 3b. 如果鄰居未被訪問過
       if (!nextCell.visited) {
-        this.removeWalls(currentCell, nextCell);
+        removeWalls(currentCell, nextCell);
         nextCell.visited = true;
         unvisitedCount--;
       }
@@ -485,73 +486,5 @@ export class MazeGenerator {
         visited: false,
       }))
     );
-  }
-
-  /**
-   * 獲取指定儲存格的所有未訪問鄰居
-   * @param cell 要檢查的儲存格
-   * @returns {Cell[]} 未訪問的鄰居陣列
-   */
-  private getUnvisitedNeighbors(cell: Cell): Cell[] {
-    return this.getNeighbors(cell).filter(neighbor => !neighbor.visited);
-  }
-
-  /**
-   * 獲取一個儲存格的所有物理上的鄰居，不論其是否已被訪問。
-   * @param cell 要檢查的儲存格。
-   * @returns {Cell[]} 一個包含相鄰儲存格的陣列。
-   */
-  private getNeighbors(cell: Cell): Cell[] {
-    const neighbors: Cell[] = [];
-    const { x, y } = cell;
-    const directions = [
-      { dx: 0, dy: -1 }, // 上
-      { dx: 1, dy: 0 },  // 右
-      { dx: 0, dy: 1 },  // 下
-      { dx: -1, dy: 0 }, // 左
-    ];
-
-    for (const { dx, dy } of directions) {
-      const newX = x + dx;
-      const newY = y + dy;
-      if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height) {
-        neighbors.push(this.grid[newY][newX]);
-      }
-    }
-    return neighbors;
-  }
-
-  /**
-   * 移除兩個相鄰儲存格之間的牆壁
-   * @param a 第一個儲存格
-   * @param b 第二個儲存格
-   */
-  private removeWalls(a: Cell, b: Cell): void {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-
-    // 處理水平方向的牆壁
-    switch (dx) {
-      case 1: // a 在 b 的右邊
-        a.walls.left = false;
-        b.walls.right = false;
-        break;
-      case -1: // a 在 b 的左邊
-        a.walls.right = false;
-        b.walls.left = false;
-        break;
-    }
-
-    // 處理垂直方向的牆壁
-    switch (dy) {
-      case 1: // a 在 b 的下面
-        a.walls.top = false;
-        b.walls.bottom = false;
-        break;
-      case -1: // a 在 b 的上面
-        a.walls.bottom = false;
-        b.walls.top = false;
-        break;
-    }
   }
 }
