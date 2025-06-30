@@ -3,23 +3,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MazeSolver = exports.MazeGenerator = void 0;
 exports.drawMazeToConsole = drawMazeToConsole;
 /**
- * 使用遞迴回溯演算法產生迷宮
+ * A class to generate mazes using various algorithms.
  */
 class MazeGenerator {
     width;
     height;
     grid = [];
     stack = [];
+    algorithm;
     /**
      * @param width 迷宮的寬度（儲存格數量）
      * @param height 迷宮的高度（儲存格數量）
      */
-    constructor(width, height) {
+    constructor(width, height, algorithm = 'recursive-backtracker') {
         if (width <= 0 || height <= 0) {
             throw new Error("Width and height must be greater than 0.");
         }
         this.width = width;
         this.height = height;
+        this.algorithm = algorithm;
     }
     /**
      * 產生迷宮的主要方法
@@ -27,6 +29,21 @@ class MazeGenerator {
      */
     generate() {
         this.initializeGrid();
+        switch (this.algorithm) {
+            case 'prim':
+                return this.generateWithPrim();
+            case 'kruskal':
+                return this.generateWithKruskal();
+            case 'recursive-backtracker':
+            default:
+                return this.generateWithRecursiveBacktracker();
+        }
+    }
+    /**
+     * Generates a maze using the Recursive Backtracking algorithm.
+     * @returns {Cell[][]} The generated maze grid.
+     */
+    generateWithRecursiveBacktracker() {
         // 1. 選擇一個起始儲存格
         const startCell = this.grid[0][0];
         startCell.visited = true;
@@ -49,6 +66,85 @@ class MazeGenerator {
             else {
                 // 如果沒有未訪問的鄰居，則從堆疊中彈出儲存格（回溯）
                 this.stack.pop();
+            }
+        }
+        return this.grid;
+    }
+    /**
+     * Generates a maze using Prim's algorithm.
+     * @returns {Cell[][]} The generated maze grid.
+     */
+    generateWithPrim() {
+        // 1. Pick a starting cell and mark it as part of the maze.
+        const startCell = this.grid[Math.floor(Math.random() * this.height)][Math.floor(Math.random() * this.width)];
+        startCell.visited = true;
+        // 2. Create a list of walls connected to the maze (the frontier).
+        const frontier = [];
+        const addFrontier = (cell) => {
+            const { x, y } = cell;
+            if (y > 0)
+                frontier.push({ from: cell, to: this.grid[y - 1][x] });
+            if (x < this.width - 1)
+                frontier.push({ from: cell, to: this.grid[y][x + 1] });
+            if (y < this.height - 1)
+                frontier.push({ from: cell, to: this.grid[y + 1][x] });
+            if (x > 0)
+                frontier.push({ from: cell, to: this.grid[y][x - 1] });
+        };
+        addFrontier(startCell);
+        // 3. While the frontier is not empty
+        while (frontier.length > 0) {
+            // Pick a random wall from the frontier
+            const randIndex = Math.floor(Math.random() * frontier.length);
+            const { from, to } = frontier.splice(randIndex, 1)[0];
+            // If the cell on the other side is not yet part of the maze
+            if (!to.visited) {
+                // Carve a passage
+                this.removeWalls(from, to);
+                // Mark the new cell as part of the maze
+                to.visited = true;
+                // Add the new cell's walls to the frontier
+                addFrontier(to);
+            }
+        }
+        return this.grid;
+    }
+    /**
+     * Generates a maze using Kruskal's algorithm.
+     * @returns {Cell[][]} The generated maze grid.
+     */
+    generateWithKruskal() {
+        // 1. Create a list of all interior walls
+        const walls = [];
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                if (y < this.height - 1)
+                    walls.push({ c1: this.grid[y][x], c2: this.grid[y + 1][x] });
+                if (x < this.width - 1)
+                    walls.push({ c1: this.grid[y][x], c2: this.grid[y][x + 1] });
+            }
+        }
+        // 2. Shuffle the list of walls
+        for (let i = walls.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [walls[i], walls[j]] = [walls[j], walls[i]];
+        }
+        // 3. DSU (Disjoint Set Union) setup
+        const parent = new Map();
+        const find = (cell) => {
+            if (parent.get(cell) === cell)
+                return cell;
+            const root = find(parent.get(cell));
+            parent.set(cell, root); // Path compression
+            return root;
+        };
+        this.grid.flat().forEach(cell => parent.set(cell, cell));
+        // 4. Iterate through walls and connect sets
+        for (const wall of walls) {
+            const { c1, c2 } = wall;
+            if (find(c1) !== find(c2)) {
+                parent.set(find(c1), find(c2)); // Union
+                this.removeWalls(c1, c2);
             }
         }
         return this.grid;
@@ -250,9 +346,10 @@ function drawMazeToConsole(grid, path = []) {
  * @param width 迷宮寬度
  * @param height 迷宮高度
  */
-function createSolveAndPrintMaze(width, height) {
-    console.log(`\n這是一個 ${width}x${height} 的迷宮 (包含解答路徑)：`);
-    const mazeGenerator = new MazeGenerator(width, height);
+function createSolveAndPrintMaze(width, height, algorithm) {
+    const algorithmName = algorithm.charAt(0).toUpperCase() + algorithm.slice(1).replace('-', ' ');
+    console.log(`\n這是一個 ${width}x${height} 的迷宮 (使用 ${algorithmName} 演算法，包含解答路徑)：`);
+    const mazeGenerator = new MazeGenerator(width, height, algorithm);
     const mazeData = mazeGenerator.generate();
     const start = { x: 0, y: 0 };
     const end = { x: width - 1, y: height - 1 };
@@ -264,5 +361,6 @@ function createSolveAndPrintMaze(width, height) {
     const path = solver.solve(start, end);
     drawMazeToConsole(mazeData, path);
 }
-createSolveAndPrintMaze(15, 10);
-createSolveAndPrintMaze(5, 5);
+createSolveAndPrintMaze(15, 10, 'recursive-backtracker');
+createSolveAndPrintMaze(15, 10, 'prim');
+createSolveAndPrintMaze(15, 10, 'kruskal');
