@@ -16,6 +16,7 @@
   - **二元樹演算法 (Binary Tree Algorithm)**: 速度極快，但會產生有強烈對角線偏向的迷宮。
 - **A\* 求解器**: 使用 A* 演算法高效地尋找從起點到終點的最短路徑。
 - **主控台視覺化**: 將生成的迷宮和解答路徑以 ASCII 形式清晰地繪製在主控台中。
+- **可重現的隨機性**: 可選的隨機種子允許您重現完全相同的迷宮。
 - **零依賴**: 純 TypeScript 實現，不需任何外部函式庫。
 - **型別安全**: 充分利用 TypeScript 的型別系統，程式碼清晰且易於維護。
 
@@ -47,7 +48,8 @@
 import { MazeGenerator, MazeSolver, drawMazeToConsole } from './maze';
 
 // 1. 選擇一種演算法，產生一個 20x10 的迷宮
-const mazeGenerator = new MazeGenerator(20, 10, 'prim');
+// 您可以傳入一個可選的種子來產生可重現的迷宮
+const mazeGenerator = new MazeGenerator(20, 10, 'prim', 12345);
 const mazeGrid = mazeGenerator.generate();
 
 // 2. 設定迷宮的入口和出口
@@ -110,4 +112,3 @@ drawMazeToConsole(mazeGrid, path);
 - **最佳化求解器**: 將 `MazeSolver` 中的 `openSet` 從陣列改為使用最小堆（Min-Heap），以提升大型迷宮的求解效能。
 - **圖形化介面 (GUI)**: 使用 HTML Canvas、React 或其他前端框架建立一個互動式的圖形介面，讓使用者可以即時看到迷宮生成過程。
 - **新增演算法**: 加入更多迷宮生成演算法，例如 "Growing Tree" 或 "Binary Tree"。
-- **可配置的隨機種子**: 允許傳入一個隨機種子，以便能夠重現相同的迷宮。
