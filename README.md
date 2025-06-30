@@ -43,9 +43,11 @@
 ## 🛠️ API 使用方式
 
 您可以輕易地在您自己的專案中引入並使用這些模組。
-
 ```typescript
-import { MazeGenerator, MazeSolver, drawMazeToConsole } from './maze';
+import { MazeGenerator } from './maze-generator';
+import { MazeSolver } from './maze-solver';
+import { drawMazeToConsole } from './maze-drawer';
+import type { Point } from './types';
 
 // 1. 選擇一種演算法，產生一個 20x10 的迷宮
 // 您可以傳入一個可選的種子來產生可重現的迷宮
@@ -53,8 +55,8 @@ const mazeGenerator = new MazeGenerator(20, 10, 'prim', 12345);
 const mazeGrid = mazeGenerator.generate();
 
 // 2. 設定迷宮的入口和出口
-const start = { x: 0, y: 0 };
-const end = { x: 19, y: 9 };
+const start: Point = { x: 0, y: 0 };
+const end: Point = { x: 19, y: 9 };
 
 // 打開入口和出口的牆壁
 mazeGrid[start.y][start.x].walls.top = false;
@@ -100,12 +102,11 @@ drawMazeToConsole(mazeGrid, path);
 
 ## 🏛️ 專案結構
 
-- **`maze.ts`**: 包含所有核心邏輯的檔案。
-  - **`Cell` interface**: 定義迷宮中每個儲存格的資料結構。
-  - **`MazeGenerationAlgorithm` type**: 定義可用的演算法名稱。
-  - **`MazeGenerator` class**: 負責根據指定演算法產生迷宮。
-  - **`MazeSolver` class**: 負責接收一個迷宮網格，並使用 A* 演算法找出路徑。
-  - **`drawMazeToConsole()` function**: 一個輔助函式，用於將迷宮資料結構視覺化。
+- **`maze.ts`**: 專案的主要進入點，包含執行範例。
+- **`types.ts`**: 包含共享的 TypeScript 型別定義，如 `Cell` 和 `Point`。
+- **`maze-generator.ts`**: 包含 `MazeGenerator` 類別和所有迷宮生成演算法的邏輯。
+- **`maze-solver.ts`**: 包含 `MazeSolver` 類別和 A* 求解演算法的邏輯。
+- **`maze-drawer.ts`**: 包含 `drawMazeToConsole` 輔助函式，用於在主控台繪製迷宮。
 
 ## 💡 未來可擴充方向
 
