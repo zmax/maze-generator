@@ -114,6 +114,9 @@ drawMazeToConsole(mazeGrid, path);
 - **`maze-solver.ts`**: 包含 `MazeSolver` 類別和 A* 求解演算法的邏輯。
 - **`maze-drawer.ts`**: 包含 `drawMazeToConsole` 輔助函式，用於在主控台繪製迷宮。
 - **`maze-utils.ts`**: 包含與迷宮網格操作相關的通用輔助函式。
+- **`data-structures/`**: 包含通用的資料結構。
+  - **`disjoint-set.ts`**: 並查集 (Disjoint Set Union) 的實作。
+  - **`priority-queue.ts`**: 最小堆 (Min-Heap) 優先權佇列的實作。
 
 ## 💡 未來可擴充方向
 

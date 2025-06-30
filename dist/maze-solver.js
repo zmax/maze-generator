@@ -1,80 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MazeSolver = void 0;
-/**
- * 一個使用最小堆實作的優先權佇列，用於 A* 演算法。
- * 優先權越低，越先被取出。
- */
-class PriorityQueue {
-    heap = [];
-    /**
-     * 插入一個帶有優先權的項目
-     * @param item 要插入的項目
-     * @param priority 優先權 (數值越小越高)
-     */
-    insert(item, priority) {
-        this.heap.push({ item, priority });
-        this.siftUp(this.heap.length - 1);
-    }
-    /**
-     * 取出並回傳優先權最高的項目 (最小的值)
-     * @returns {T | null} 優先權最高的項目，如果佇列為空則回傳 null
-     */
-    extractMin() {
-        if (this.isEmpty()) {
-            return null;
-        }
-        this.swap(0, this.heap.length - 1);
-        const { item } = this.heap.pop();
-        if (!this.isEmpty()) {
-            this.siftDown(0);
-        }
-        return item;
-    }
-    /**
-     * 檢查佇列是否為空
-     * @returns {boolean} 如果為空則為 true
-     */
-    isEmpty() {
-        return this.heap.length === 0;
-    }
-    getParentIndex(i) {
-        return Math.floor((i - 1) / 2);
-    }
-    getLeftChildIndex(i) {
-        return 2 * i + 1;
-    }
-    getRightChildIndex(i) {
-        return 2 * i + 2;
-    }
-    swap(i, j) {
-        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
-    }
-    siftUp(i) {
-        let parentIndex = this.getParentIndex(i);
-        while (i > 0 && this.heap[i].priority < this.heap[parentIndex].priority) {
-            this.swap(i, parentIndex);
-            i = parentIndex;
-            parentIndex = this.getParentIndex(i);
-        }
-    }
-    siftDown(i) {
-        let minIndex = i;
-        const leftIndex = this.getLeftChildIndex(i);
-        const rightIndex = this.getRightChildIndex(i);
-        const size = this.heap.length;
-        if (leftIndex < size && this.heap[leftIndex].priority < this.heap[minIndex].priority) {
-            minIndex = leftIndex;
-        }
-        if (rightIndex < size && this.heap[rightIndex].priority < this.heap[minIndex].priority) {
-            minIndex = rightIndex;
-        }
-        if (i !== minIndex) {
-            this.swap(i, minIndex);
-            this.siftDown(minIndex);
-        }
-    }
-}
+const priority_queue_1 = require("./data-structures/priority-queue");
 /**
  * 使用 A* (A-star) 演算法來解決迷宮
  */
@@ -97,7 +24,7 @@ class MazeSolver {
         const startCell = this.grid[start.y][start.x];
         const endCell = this.grid[end.y][end.x];
         // openSet: 使用優先權佇列來儲存待評估的節點，fScore 越低優先權越高。
-        const openSet = new PriorityQueue();
+        const openSet = new priority_queue_1.PriorityQueue();
         // closedSet: 儲存已經評估過的節點，避免重複處理。
         const closedSet = new Set();
         // cameFrom: 記錄每個節點在最短路徑上的前一個節點

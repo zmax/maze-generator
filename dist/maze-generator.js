@@ -1,78 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MazeGenerator = void 0;
-/**
- * 並查集 (Disjoint Set Union) 資料結構，用於 Kruskal 演算法。
- * 透過「按秩合併」和「路徑壓縮」進行了最佳化。
- * @template T 集合中元素的類型。
- */
-class DisjointSet {
-    parent = new Map();
-    rank = new Map();
-    /**
-     * @param items 初始元素陣列，每個元素都會被建立成一個獨立的集合。
-     */
-    constructor(items = []) {
-        items.forEach(item => this.makeSet(item));
-    }
-    /**
-     * 建立一個只包含單一元素的新集合。
-     * @param item 要加入的元素。
-     */
-    makeSet(item) {
-        if (!this.parent.has(item)) {
-            this.parent.set(item, item);
-            this.rank.set(item, 0);
-        }
-    }
-    /**
-     * 尋找一個元素的代表元素（根節點），並在過程中進行路徑壓縮。
-     * @param item 要尋找的元素。
-     * @returns {T} 該元素所在集合的代表元素。
-     */
-    find(item) {
-        const root = this.parent.get(item);
-        if (root === item) {
-            return item;
-        }
-        const representative = this.find(root);
-        this.parent.set(item, representative); // 路徑壓縮
-        return representative;
-    }
-    /**
-     * 合併兩個元素所在的集合。
-     * @param item1 第一個元素。
-     * @param item2 第二個元素。
-     */
-    union(item1, item2) {
-        const root1 = this.find(item1);
-        const root2 = this.find(item2);
-        if (root1 !== root2) {
-            const rank1 = this.rank.get(root1);
-            const rank2 = this.rank.get(root2);
-            // 按秩合併
-            if (rank1 < rank2) {
-                this.parent.set(root1, root2);
-            }
-            else if (rank1 > rank2) {
-                this.parent.set(root2, root1);
-            }
-            else {
-                this.parent.set(root2, root1);
-                this.rank.set(root1, rank1 + 1);
-            }
-        }
-    }
-    /**
-     * 檢查兩個元素是否在同一個集合中。
-     * @param item1 第一個元素。
-     * @param item2 第二個元素。
-     * @returns {boolean} 如果在同一個集合則回傳 true，否則回傳 false。
-     */
-    connected(item1, item2) {
-        return this.find(item1) === this.find(item2);
-    }
-}
+const maze_utils_1 = require("./maze-utils");
+const disjoint_set_1 = require("./data-structures/disjoint-set");
 /**
  * 一個使用多種演算法來產生迷宮的類別。
  */
@@ -170,7 +100,7 @@ class MazeGenerator {
         while (this.stack.length > 0) {
             // 查看堆疊頂端的儲存格，但不將其彈出
             const currentCell = this.stack[this.stack.length - 1];
-            const neighbors = this.getUnvisitedNeighbors(currentCell);
+            const neighbors = (0, maze_utils_1.getUnvisitedNeighbors)(currentCell, this.grid, this.width, this.height);
             // 3. 如果有未訪問的鄰居
             if (neighbors.length > 0) {
                 let nextCell;
@@ -196,7 +126,7 @@ class MazeGenerator {
                     nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
                 }
                 // 打通牆壁
-                this.removeWalls(currentCell, nextCell);
+                (0, maze_utils_1.removeWalls)(currentCell, nextCell);
                 // 將鄰居標記為已訪問並推入堆疊
                 nextCell.visited = true;
                 this.stack.push(nextCell);
@@ -238,7 +168,7 @@ class MazeGenerator {
             // If the cell on the other side is not yet part of the maze
             if (!to.visited) {
                 // 打通牆壁，建立通道
-                this.removeWalls(from, to);
+                (0, maze_utils_1.removeWalls)(from, to);
                 // 將新的儲存格標記為迷宮的一部分
                 to.visited = true;
                 // 將新儲存格的牆壁加入到邊界列表中
@@ -268,13 +198,13 @@ class MazeGenerator {
             [walls[i], walls[j]] = [walls[j], walls[i]];
         }
         // 3. 初始化並查集，將每個儲存格視為一個獨立的集合
-        const dsu = new DisjointSet(this.grid.flat());
+        const dsu = new disjoint_set_1.DisjointSet(this.grid.flat());
         // 4. 遍歷所有牆壁，如果牆壁兩側的儲存格不屬於同一個集合，則打通牆壁並合併集合
         for (const wall of walls) {
             const { c1, c2 } = wall;
             if (!dsu.connected(c1, c2)) {
                 dsu.union(c1, c2);
-                this.removeWalls(c1, c2);
+                (0, maze_utils_1.removeWalls)(c1, c2);
             }
         }
         return this.grid;
@@ -301,7 +231,7 @@ class MazeGenerator {
             let current = startCell;
             // 3. 進行「抹除迴圈的隨機遊走」，直到碰到一個已在迷宮中的儲存格。
             while (!current.visited) {
-                const neighbors = this.getNeighbors(current);
+                const neighbors = (0, maze_utils_1.getNeighbors)(current, this.grid, this.width, this.height);
                 const next = neighbors[Math.floor(this.random() * neighbors.length)];
                 const existingIndex = walkPath.indexOf(next);
                 if (existingIndex !== -1) {
@@ -315,7 +245,7 @@ class MazeGenerator {
             }
             // 4. 將完成的遊走路徑刻入迷宮中。
             for (let i = 0; i < walkPath.length - 1; i++) {
-                this.removeWalls(walkPath[i], walkPath[i + 1]);
+                (0, maze_utils_1.removeWalls)(walkPath[i], walkPath[i + 1]);
                 // Mark cells as visited now, so future walks can find the maze.
                 walkPath[i].visited = true;
             }
@@ -357,11 +287,11 @@ class MazeGenerator {
             }
             const currentCell = activeSet[index];
             // 3b. 尋找該儲存格的未訪問鄰居
-            const neighbors = this.getUnvisitedNeighbors(currentCell);
+            const neighbors = (0, maze_utils_1.getUnvisitedNeighbors)(currentCell, this.grid, this.width, this.height);
             if (neighbors.length > 0) {
                 // 3c. 如果有未訪問的鄰居，隨機選擇一個
                 const nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
-                this.removeWalls(currentCell, nextCell);
+                (0, maze_utils_1.removeWalls)(currentCell, nextCell);
                 nextCell.visited = true;
                 activeSet.push(nextCell); // 將新儲存格加入作用中列表
             }
@@ -401,7 +331,7 @@ class MazeGenerator {
                 // 從可能的鄰居中隨機選擇一個來打通牆壁
                 if (neighborsToCarve.length > 0) {
                     const neighbor = neighborsToCarve[Math.floor(this.random() * neighborsToCarve.length)];
-                    this.removeWalls(cell, neighbor);
+                    (0, maze_utils_1.removeWalls)(cell, neighbor);
                 }
             }
         }
@@ -421,11 +351,11 @@ class MazeGenerator {
         // 3. 當還有未訪問的儲存格時，持續進行隨機遊走
         while (unvisitedCount > 0) {
             // 3a. 隨機選擇一個鄰居
-            const neighbors = this.getNeighbors(currentCell);
+            const neighbors = (0, maze_utils_1.getNeighbors)(currentCell, this.grid, this.width, this.height);
             const nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
             // 3b. 如果鄰居未被訪問過
             if (!nextCell.visited) {
-                this.removeWalls(currentCell, nextCell);
+                (0, maze_utils_1.removeWalls)(currentCell, nextCell);
                 nextCell.visited = true;
                 unvisitedCount--;
             }
@@ -445,68 +375,6 @@ class MazeGenerator {
             walls: { top: true, right: true, bottom: true, left: true },
             visited: false,
         })));
-    }
-    /**
-     * 獲取指定儲存格的所有未訪問鄰居
-     * @param cell 要檢查的儲存格
-     * @returns {Cell[]} 未訪問的鄰居陣列
-     */
-    getUnvisitedNeighbors(cell) {
-        return this.getNeighbors(cell).filter(neighbor => !neighbor.visited);
-    }
-    /**
-     * 獲取一個儲存格的所有物理上的鄰居，不論其是否已被訪問。
-     * @param cell 要檢查的儲存格。
-     * @returns {Cell[]} 一個包含相鄰儲存格的陣列。
-     */
-    getNeighbors(cell) {
-        const neighbors = [];
-        const { x, y } = cell;
-        const directions = [
-            { dx: 0, dy: -1 }, // 上
-            { dx: 1, dy: 0 }, // 右
-            { dx: 0, dy: 1 }, // 下
-            { dx: -1, dy: 0 }, // 左
-        ];
-        for (const { dx, dy } of directions) {
-            const newX = x + dx;
-            const newY = y + dy;
-            if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height) {
-                neighbors.push(this.grid[newY][newX]);
-            }
-        }
-        return neighbors;
-    }
-    /**
-     * 移除兩個相鄰儲存格之間的牆壁
-     * @param a 第一個儲存格
-     * @param b 第二個儲存格
-     */
-    removeWalls(a, b) {
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        // 處理水平方向的牆壁
-        switch (dx) {
-            case 1: // a 在 b 的右邊
-                a.walls.left = false;
-                b.walls.right = false;
-                break;
-            case -1: // a 在 b 的左邊
-                a.walls.right = false;
-                b.walls.left = false;
-                break;
-        }
-        // 處理垂直方向的牆壁
-        switch (dy) {
-            case 1: // a 在 b 的下面
-                a.walls.top = false;
-                b.walls.bottom = false;
-                break;
-            case -1: // a 在 b 的上面
-                a.walls.bottom = false;
-                b.walls.top = false;
-                break;
-        }
     }
 }
 exports.MazeGenerator = MazeGenerator;
