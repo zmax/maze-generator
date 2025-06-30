@@ -69,10 +69,6 @@ export class MazeGenerator {
       }
     }
     
-    // 建立入口和出口
-    this.grid[0][0].walls.top = false;
-    this.grid[this.height - 1][this.width - 1].walls.bottom = false;
-
     return this.grid;
   }
 
@@ -80,20 +76,15 @@ export class MazeGenerator {
    * 初始化網格，建立所有儲存格並設定所有牆壁
    */
   private initializeGrid(): void {
-    this.grid = [];
     this.stack = [];
-    for (let y = 0; y < this.height; y++) {
-      const row: Cell[] = [];
-      for (let x = 0; x < this.width; x++) {
-        row.push({
-          x,
-          y,
-          walls: { top: true, right: true, bottom: true, left: true },
-          visited: false,
-        });
-      }
-      this.grid.push(row);
-    }
+    this.grid = Array.from({ length: this.height }, (_, y) =>
+      Array.from({ length: this.width }, (_, x) => ({
+        x,
+        y,
+        walls: { top: true, right: true, bottom: true, left: true },
+        visited: false,
+      }))
+    );
   }
 
   /**
@@ -162,10 +153,68 @@ export class MazeGenerator {
 }
 
 /**
+ * 使用廣度優先搜尋 (BFS) 解決迷宮
+ */
+export class MazeSolver {
+  private grid: Cell[][];
+  private width: number;
+  private height: number;
+
+  constructor(grid: Cell[][]) {
+    this.grid = grid;
+    this.height = grid.length;
+    this.width = this.height > 0 ? grid[0].length : 0;
+  }
+
+  public solve(start: { x: number; y: number }, end: { x: number; y: number }): Cell[] {
+    const queue: Cell[] = [];
+    const parentMap = new Map<Cell, Cell | null>();
+    const visited = new Set<Cell>();
+
+    const startCell = this.grid[start.y][start.x];
+    const endCell = this.grid[end.y][end.x];
+
+    queue.push(startCell);
+    visited.add(startCell);
+    parentMap.set(startCell, null);
+
+    while (queue.length > 0) {
+      const currentCell = queue.shift()!;
+      if (currentCell === endCell) {
+        const path: Cell[] = [];
+        let current: Cell | null = endCell;
+        while (current) {
+          path.unshift(current);
+          current = parentMap.get(current) || null;
+        }
+        return path;
+      }
+
+      const { x, y, walls } = currentCell;
+      const traversableNeighbors: Cell[] = [];
+      if (!walls.top && y > 0) traversableNeighbors.push(this.grid[y - 1][x]);
+      if (!walls.right && x < this.width - 1) traversableNeighbors.push(this.grid[y][x + 1]);
+      if (!walls.bottom && y < this.height - 1) traversableNeighbors.push(this.grid[y + 1][x]);
+      if (!walls.left && x > 0) traversableNeighbors.push(this.grid[y][x - 1]);
+
+      for (const neighbor of traversableNeighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          parentMap.set(neighbor, currentCell);
+          queue.push(neighbor);
+        }
+      }
+    }
+    return []; // No path found
+  }
+}
+
+/**
  * 將迷宮資料結構繪製到主控台
  * @param grid 迷宮的二維陣列
+ * @param path (可選) 要繪製的路徑，儲存格陣列
  */
-export function drawMazeToConsole(grid: Cell[][]): void {
+export function drawMazeToConsole(grid: Cell[][], path: Cell[] = []): void {
   const height = grid.length;
   if (height === 0) return;
   const width = grid[0].length;
@@ -173,6 +222,7 @@ export function drawMazeToConsole(grid: Cell[][]): void {
  
   const outputLines: string[] = [];
 
+  const pathSet = new Set(path);
   // 繪製頂部邊界
   let topBorder = '+';
   for (let x = 0; x < width; x++) {
@@ -185,7 +235,9 @@ export function drawMazeToConsole(grid: Cell[][]): void {
     // 繪製儲存格內部和右牆
     let rowStr = grid[y][0].walls.left ? '|' : ' '; // 左邊界
     for (let x = 0; x < width; x++) {
-      rowStr += '   '; // 儲存格內部空間
+      const cell = grid[y][x];
+      const cellContent = pathSet.has(cell) ? ' . ' : '   ';
+      rowStr += cellContent; // 儲存格內部空間
       rowStr += grid[y][x].walls.right ? '|' : ' ';
     }
     outputLines.push(rowStr);
@@ -202,18 +254,29 @@ export function drawMazeToConsole(grid: Cell[][]): void {
 }
 
 // --- 使用範例 ---
-// 建立一個 15x10 的迷宮產生器
-const mazeGenerator = new MazeGenerator(15, 10);
 
-// 產生迷宮資料
-const mazeData = mazeGenerator.generate();
+/**
+ * 輔助函式：產生、設定出入口並印出迷宮
+ * @param width 迷宮寬度
+ * @param height 迷宮高度
+ */
+function createSolveAndPrintMaze(width: number, height: number): void {
+  console.log(`\n這是一個 ${width}x${height} 的迷宮 (包含解答路徑)：`);
+  const mazeGenerator = new MazeGenerator(width, height);
+  const mazeData = mazeGenerator.generate();
+  const start = { x: 0, y: 0 };
+  const end = { x: width - 1, y: height - 1 };
 
-// 在主控台印出迷宮
-console.log("這是一個 15x10 的迷宮：");
-drawMazeToConsole(mazeData);
+  // 建立入口和出口
+  mazeData[start.y][start.x].walls.top = false; // 入口
+  mazeData[end.y][end.x].walls.bottom = false; // 出口
 
-// 建立一個 5x5 的小迷宮
-const smallMazeGenerator = new MazeGenerator(5, 5);
-const smallMazeData = smallMazeGenerator.generate();
-console.log("\n這是一個 5x5 的迷宮：");
-drawMazeToConsole(smallMazeData);
+  // 解決迷宮
+  const solver = new MazeSolver(mazeData);
+  const path = solver.solve(start, end);
+
+  drawMazeToConsole(mazeData, path);
+}
+
+createSolveAndPrintMaze(15, 10);
+createSolveAndPrintMaze(5, 5);

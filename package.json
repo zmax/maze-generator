@@ -2,11 +2,11 @@
   "name": "p1",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node-esm maze.ts"
+    "build": "tsc",
+    "start": "pnpm build && node dist/maze.js"
   },
   "keywords": [],
   "author": "",
