@@ -15,10 +15,13 @@ interface Cell {
   visited: boolean;
 }
 
+/**
+ * 定義可用的迷宮生成演算法類型
+ */
 export type MazeGenerationAlgorithm = 'recursive-backtracker' | 'recursive-backtracker-biased' | "prim" | "kruskal" | "wilson";
 
 /**
- * A class to generate mazes using various algorithms.
+ * 一個使用多種演算法來產生迷宮的類別。
  */
 export class MazeGenerator {
   public readonly width: number;
@@ -30,6 +33,7 @@ export class MazeGenerator {
   /**
    * @param width 迷宮的寬度（儲存格數量）
    * @param height 迷宮的高度（儲存格數量）
+   * @param algorithm 要使用的生成演算法
    */
   constructor(width: number, height: number, algorithm: MazeGenerationAlgorithm = 'recursive-backtracker') {
     if (width <= 0 || height <= 0) {
@@ -61,8 +65,8 @@ export class MazeGenerator {
   }
 
   /**
-   * Generates a maze using the Recursive Backtracking algorithm.
-   * @returns {Cell[][]} The generated maze grid.
+   * 使用「遞迴回溯」演算法產生迷宮。
+   * @returns {Cell[][]} 產生的迷宮網格。
    */
   private generateWithRecursiveBacktracker(): Cell[][] {
     // 1. 選擇一個起始儲存格
@@ -89,12 +93,12 @@ export class MazeGenerator {
             straightNeighbor = neighbors.find(n => n.x - currentCell.x === lastMoveDx && n.y - currentCell.y === lastMoveDy);
           }
 
-          // 75% chance to continue straight, otherwise pick a random neighbor
+          // 有 75% 的機率繼續直線前進，否則隨機選擇一個鄰居
           const bias = 0.75;
           if (straightNeighbor && Math.random() < bias) {
             nextCell = straightNeighbor;
           } else {
-            nextCell = neighbors[Math.floor(Math.random() * neighbors.length)];
+            nextCell = neighbors[Math.floor(Math.random() * neighbors.length)]; // 隨機選擇
           }
         } else {
           // Original random selection
@@ -115,26 +119,26 @@ export class MazeGenerator {
   }
 
   /**
-   * Generates a maze using Prim's algorithm.
-   * @returns {Cell[][]} The generated maze grid.
+   * 使用「普林演算法」(Prim's algorithm) 產生迷宮。
+   * @returns {Cell[][]} 產生的迷宮網格。
    */
   private generateWithPrim(): Cell[][] {
-    // 1. Pick a starting cell and mark it as part of the maze.
+    // 1. 選擇一個起始儲存格，並將其標記為迷宮的一部分。
     const startCell = this.grid[Math.floor(Math.random() * this.height)][Math.floor(Math.random() * this.width)];
     startCell.visited = true;
 
-    // 2. Create a list of walls connected to the maze (the frontier).
+    // 2. 建立一個與迷宮相連的牆壁列表（稱為「邊界」）。
     const frontier: { from: Cell, to: Cell }[] = [];
     const addFrontier = (cell: Cell) => {
       const { x, y } = cell;
-      if (y > 0) frontier.push({ from: cell, to: this.grid[y - 1][x] });
-      if (x < this.width - 1) frontier.push({ from: cell, to: this.grid[y][x + 1] });
-      if (y < this.height - 1) frontier.push({ from: cell, to: this.grid[y + 1][x] });
-      if (x > 0) frontier.push({ from: cell, to: this.grid[y][x - 1] });
+      if (y > 0) frontier.push({ from: cell, to: this.grid[y - 1][x] }); // 上
+      if (x < this.width - 1) frontier.push({ from: cell, to: this.grid[y][x + 1] }); // 右
+      if (y < this.height - 1) frontier.push({ from: cell, to: this.grid[y + 1][x] }); // 下
+      if (x > 0) frontier.push({ from: cell, to: this.grid[y][x - 1] }); // 左
     };
     addFrontier(startCell);
 
-    // 3. While the frontier is not empty
+    // 3. 當邊界列表不為空時
     while (frontier.length > 0) {
       // Pick a random wall from the frontier
       const randIndex = Math.floor(Math.random() * frontier.length);
@@ -142,11 +146,11 @@ export class MazeGenerator {
 
       // If the cell on the other side is not yet part of the maze
       if (!to.visited) {
-        // Carve a passage
+        // 打通牆壁，建立通道
         this.removeWalls(from, to);
-        // Mark the new cell as part of the maze
+        // 將新的儲存格標記為迷宮的一部分
         to.visited = true;
-        // Add the new cell's walls to the frontier
+        // 將新儲存格的牆壁加入到邊界列表中
         addFrontier(to);
       }
     }
@@ -154,11 +158,11 @@ export class MazeGenerator {
   }
 
   /**
-   * Generates a maze using Kruskal's algorithm.
-   * @returns {Cell[][]} The generated maze grid.
+   * 使用「克魯斯克爾演算法」(Kruskal's algorithm) 產生迷宮。
+   * @returns {Cell[][]} 產生的迷宮網格。
    */
   private generateWithKruskal(): Cell[][] {
-    // 1. Create a list of all interior walls
+    // 1. 建立一個包含所有內部牆壁的列表
     const walls: { c1: Cell, c2: Cell }[] = [];
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
@@ -167,23 +171,23 @@ export class MazeGenerator {
       }
     }
 
-    // 2. Shuffle the list of walls
+    // 2. 將牆壁列表隨機排序
     for (let i = walls.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [walls[i], walls[j]] = [walls[j], walls[i]];
     }
 
-    // 3. DSU (Disjoint Set Union) setup
+    // 3. 設定並查集 (Disjoint Set Union) 資料結構
     const parent = new Map<Cell, Cell>();
     const find = (cell: Cell): Cell => {
       if (parent.get(cell) === cell) return cell;
       const root = find(parent.get(cell)!);
-      parent.set(cell, root); // Path compression
+      parent.set(cell, root); // 路徑壓縮優化
       return root;
     };
     this.grid.flat().forEach(cell => parent.set(cell, cell));
 
-    // 4. Iterate through walls and connect sets
+    // 4. 遍歷所有牆壁，如果牆壁兩側的儲存格不屬於同一個集合，則打通牆壁並合併集合
     for (const wall of walls) {
       const { c1, c2 } = wall;
       if (find(c1) !== find(c2)) {
@@ -196,15 +200,15 @@ export class MazeGenerator {
   }
 
   /**
-   * Generates a maze using Wilson's algorithm.
-   * @returns {Cell[][]} The generated maze grid.
+   * 使用「威爾遜演算法」(Wilson's algorithm) 產生迷宮。
+   * @returns {Cell[][]} 產生的迷宮網格。
    */
   private generateWithWilson(): Cell[][] {
-    // 1. Choose a random cell and mark it as part of the maze.
+    // 1. 隨機選擇一個儲存格並將其標記為迷宮的一部分。
     const initialCell = this.grid[Math.floor(Math.random() * this.height)][Math.floor(Math.random() * this.width)];
     initialCell.visited = true;
 
-    // 2. Create a list of all non-visited cells and shuffle for random start points.
+    // 2. 建立一個包含所有未訪問儲存格的列表，並隨機排序以作為隨機遊走的起點。
     const unvisited = this.grid.flat().filter(c => !c.visited);
     for (let i = unvisited.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -212,20 +216,20 @@ export class MazeGenerator {
     }
 
     for (const startCell of unvisited) {
-      // If this cell was already visited by a previous walk, skip it.
+      // 如果此儲存格已被先前的遊走訪問過，則跳過。
       if (startCell.visited) continue;
 
       let walkPath = [startCell];
       let current = startCell;
 
-      // 3. Perform a loop-erased random walk until we hit a visited cell.
+      // 3. 進行「抹除迴圈的隨機遊走」，直到碰到一個已在迷宮中的儲存格。
       while (!current.visited) {
         const neighbors = this.getNeighbors(current);
         const next = neighbors[Math.floor(Math.random() * neighbors.length)];
 
         const existingIndex = walkPath.indexOf(next);
         if (existingIndex !== -1) {
-          // Loop detected! Erase it by slicing the path.
+          // 偵測到迴圈！透過切割路徑來抹除它。
           walkPath = walkPath.slice(0, existingIndex + 1);
         } else {
           walkPath.push(next);
@@ -233,7 +237,7 @@ export class MazeGenerator {
         current = next;
       }
 
-      // 4. Carve the completed walk into the maze.
+      // 4. 將完成的遊走路徑刻入迷宮中。
       for (let i = 0; i < walkPath.length - 1; i++) {
         this.removeWalls(walkPath[i], walkPath[i + 1]);
         // Mark cells as visited now, so future walks can find the maze.
@@ -269,18 +273,18 @@ export class MazeGenerator {
   }
 
   /**
-   * Gets all physical neighbors of a cell, regardless of visited status.
-   * @param cell The cell to check.
-   * @returns {Cell[]} An array of neighboring cells.
+   * 獲取一個儲存格的所有物理上的鄰居，不論其是否已被訪問。
+   * @param cell 要檢查的儲存格。
+   * @returns {Cell[]} 一個包含相鄰儲存格的陣列。
    */
   private getNeighbors(cell: Cell): Cell[] {
     const neighbors: Cell[] = [];
     const { x, y } = cell;
     const directions = [
-      { dx: 0, dy: -1 }, // Up
-      { dx: 1, dy: 0 },  // Right
-      { dx: 0, dy: 1 },  // Down
-      { dx: -1, dy: 0 }, // Left
+      { dx: 0, dy: -1 }, // 上
+      { dx: 1, dy: 0 },  // 右
+      { dx: 0, dy: 1 },  // 下
+      { dx: -1, dy: 0 }, // 左
     ];
 
     for (const { dx, dy } of directions) {
@@ -329,7 +333,7 @@ export class MazeGenerator {
 }
 
 /**
- * 使用廣度優先搜尋 (BFS) 解決迷宮
+ * 使用 A* (A-star) 演算法來解決迷宮
  */
 export class MazeSolver {
   private grid: Cell[][];
@@ -343,7 +347,7 @@ export class MazeSolver {
   }
 
   /**
-   * Heuristic function (Manhattan distance) for A*
+   * A* 演算法的啟發函式 (使用曼哈頓距離)
    */
   private heuristic(a: Cell, b: Cell): number {
     return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
@@ -353,23 +357,22 @@ export class MazeSolver {
     const startCell = this.grid[start.y][start.x];
     const endCell = this.grid[end.y][end.x];
 
-    // The set of nodes to be evaluated
+    // openSet: 待評估的節點集合
     const openSet: Cell[] = [startCell];
 
-    // For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently known.
+    // cameFrom: 記錄每個節點在最短路徑上的前一個節點
     const cameFrom = new Map<Cell, Cell>();
 
-    // For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
+    // gScore: 記錄從起點到目前節點的已知最低成本
     const gScore = new Map<Cell, number>();
     gScore.set(startCell, 0);
 
-    // For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
-    // how short a path from start to finish can be if it goes through n.
+    // fScore: fScore[n] = gScore[n] + h(n)，代表從起點經過節點 n 到終點的預估總成本
     const fScore = new Map<Cell, number>();
     fScore.set(startCell, this.heuristic(startCell, endCell));
 
     while (openSet.length > 0) {
-      // Find the node in openSet having the lowest fScore[] value
+      // 在 openSet 中找到 fScore 最低的節點
       let currentCell = openSet[0];
       for (let i = 1; i < openSet.length; i++) {
         if ((fScore.get(openSet[i]) ?? Infinity) < (fScore.get(currentCell) ?? Infinity)) {
@@ -378,7 +381,7 @@ export class MazeSolver {
       }
 
       if (currentCell === endCell) {
-        // Reconstruct path
+        // 已到達終點，回溯路徑
         const path: Cell[] = [];
         let current: Cell | null = endCell;
         while (current) {
@@ -388,7 +391,7 @@ export class MazeSolver {
         return path;
       }
 
-      // Remove currentCell from openSet
+      // 將目前節點從 openSet 中移除
       const index = openSet.indexOf(currentCell);
       openSet.splice(index, 1);
 
@@ -400,10 +403,10 @@ export class MazeSolver {
       if (!walls.left && x > 0) traversableNeighbors.push(this.grid[y][x - 1]);
 
       for (const neighbor of traversableNeighbors) {
-        // tentative_gScore is the distance from start to the neighbor through current
+        // tentativeGScore 是從起點經過 currentCell 到達 neighbor 的距離
         const tentativeGScore = (gScore.get(currentCell) ?? Infinity) + 1;
         if (tentativeGScore < (gScore.get(neighbor) ?? Infinity)) {
-          // This path to neighbor is better than any previous one. Record it!
+          // 這條到達 neighbor 的路徑比之前任何路徑都好，記錄下來！
           cameFrom.set(neighbor, currentCell);
           gScore.set(neighbor, tentativeGScore);
           fScore.set(neighbor, tentativeGScore + this.heuristic(neighbor, endCell));
@@ -413,7 +416,7 @@ export class MazeSolver {
         }
       }
     }
-    return []; // No path found
+    return []; // 找不到路徑
   }
 }
 
