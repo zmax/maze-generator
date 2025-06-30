@@ -113,8 +113,8 @@ async function visualizeSolving(width: number, height: number, algorithm: MazeGe
 
 async function main() {
   // 執行視覺化範例
-  await createAndVisualizeMaze(20, 10, 'recursive-backtracker', 123);
-  await visualizeSolving(20, 10, 'kruskal', 456);
+  // await createAndVisualizeMaze(20, 10, 'recursive-backtracker', 123);
+  // await visualizeSolving(20, 10, 'kruskal', 456);
 
   // 執行原有的靜態生成範例
   const mazeSeed = 12345;
@@ -125,6 +125,7 @@ async function main() {
   await createAndSolveMaze(15, 10, 'binary-tree', { seed: mazeSeed, binaryTreeBias: 'south-east' });
   await createAndSolveMaze(15, 10, 'aldous-broder', { seed: mazeSeed });
   await createAndSolveMaze(15, 10, 'sidewinder', { seed: mazeSeed });
+  await createAndSolveMaze(15, 10, 'recursive-division', { seed: mazeSeed });
 }
 
 main();

@@ -56,6 +56,13 @@ export class MazeGenerator {
    * @async
    */
   public async generate(): Promise<Cell[][]> {
+    // Recursive Division 是「牆壁添加者」，需要不同的初始化。
+    if (this.algorithm === 'recursive-division') {
+      this.initializeOpenGrid();
+      return await this.generateWithRecursiveDivision();
+    }
+
+    // 所有其他演算法都是「路徑雕刻者」，從一個完整的網格開始。
     this.initializeGrid();
     switch (this.algorithm) {
       case 'prim':
@@ -480,6 +487,76 @@ export class MazeGenerator {
   }
 
   /**
+   * 使用「遞迴分割演算法」(Recursive Division algorithm) 產生迷宮。
+   * 這是一種「牆壁添加者」演算法，與其他「路徑雕刻者」演算法相反。
+   * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
+   */
+  private async generateWithRecursiveDivision(): Promise<Cell[][]> {
+    await this.divide(0, 0, this.width, this.height);
+    return this.grid;
+  }
+
+  /**
+   * 遞迴地分割一個區域來產生牆壁。
+   * @param x 區域的起始 x 座標
+   * @param y 區域的起始 y 座標
+   * @param width 區域的寬度
+   * @param height 區域的高度
+   * @private
+   * @async
+   */
+  private async divide(x: number, y: number, width: number, height: number): Promise<void> {
+    const onStep = this.options.onStep;
+
+    if (width < 2 || height < 2) {
+      return;
+    }
+
+    // 決定牆壁的方向：水平或垂直
+    const horizontal = (width < height) || (width === height && this.random() < 0.5);
+
+    if (horizontal) {
+      // 隨機選擇畫牆的位置 (wallY) 和通道的位置 (passageX)
+      const wallY = y + Math.floor(this.random() * (height - 1));
+      const passageX = x + Math.floor(this.random() * width);
+      
+      const wallCells: Cell[] = [];
+      for (let i = x; i < x + width; i++) {
+        if (i === passageX) continue; // 在通道位置留空
+        this.grid[wallY][i].walls.bottom = true;
+        this.grid[wallY + 1][i].walls.top = true;
+        wallCells.push(this.grid[wallY][i]);
+      }
+
+      if (onStep) {
+        await onStep({ grid: this.grid, activeSet: wallCells });
+      }
+
+      await this.divide(x, y, width, wallY - y + 1);
+      await this.divide(x, wallY + 1, width, height - (wallY - y + 1));
+    } else { // 垂直牆壁
+      const wallX = x + Math.floor(this.random() * (width - 1));
+      const passageY = y + Math.floor(this.random() * height);
+
+      const wallCells: Cell[] = [];
+      for (let i = y; i < y + height; i++) {
+        if (i === passageY) continue; // 在通道位置留空
+        this.grid[i][wallX].walls.right = true;
+        this.grid[i][wallX + 1].walls.left = true;
+        wallCells.push(this.grid[i][wallX]);
+      }
+
+      if (onStep) {
+        await onStep({ grid: this.grid, activeSet: wallCells });
+      }
+
+      await this.divide(x, y, wallX - x + 1, height);
+      await this.divide(wallX + 1, y, width - (wallX - x + 1), height);
+    }
+  }
+
+  /**
    * 初始化網格，建立所有儲存格並設定所有牆壁
    */
   private initializeGrid(): void {
@@ -490,6 +567,27 @@ export class MazeGenerator {
         y,
         walls: { top: true, right: true, bottom: true, left: true },
         visited: false,
+      }))
+    );
+  }
+
+  /**
+   * 初始化一個開放的網格，用於「牆壁添加者」演算法。
+   * 只有最外圍的邊界有牆壁。
+   */
+  private initializeOpenGrid(): void {
+    this.stack = [];
+    this.grid = Array.from({ length: this.height }, (_, y) =>
+      Array.from({ length: this.width }, (_, x) => ({
+        x,
+        y,
+        walls: {
+          top: y === 0,
+          right: x === this.width - 1,
+          bottom: y === this.height - 1,
+          left: x === 0,
+        },
+        visited: false, // 此演算法不使用 visited 狀態
       }))
     );
   }

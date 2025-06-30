@@ -53,6 +53,7 @@ describe('MazeGenerator', () => {
     'binary-tree',
     'aldous-broder',
     'sidewinder',
+    'recursive-division',
   ];
 
   algorithms.forEach(algo => {
