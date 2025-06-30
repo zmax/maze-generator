@@ -111,6 +111,8 @@ class MazeGenerator {
                 return this.generateWithWilson();
             case 'growing-tree':
                 return this.generateWithGrowingTree();
+            case 'binary-tree':
+                return this.generateWithBinaryTree();
             case 'recursive-backtracker':
             case 'recursive-backtracker-biased':
             default:
@@ -316,6 +318,33 @@ class MazeGenerator {
             else {
                 // 3d. 如果沒有未訪問的鄰居，將目前儲存格從作用中列表移除
                 activeSet.splice(index, 1);
+            }
+        }
+        return this.grid;
+    }
+    /**
+     * 使用「二元樹演算法」(Binary Tree algorithm) 產生迷宮。
+     * 這是最簡單的演算法之一，速度極快，但會產生有強烈對角線偏向的迷宮。
+     * @returns {Cell[][]} 產生的迷宮網格。
+     */
+    generateWithBinaryTree() {
+        for (const row of this.grid) {
+            for (const cell of row) {
+                const neighborsToCarve = [];
+                // 演算法可以偏向任何方向，這裡我們選擇北方和西方
+                // 如果有北方鄰居，則將其作為一個可能的連接對象
+                if (cell.y > 0) {
+                    neighborsToCarve.push(this.grid[cell.y - 1][cell.x]);
+                }
+                // 如果有西方鄰居，則將其作為一個可能的連接對象
+                if (cell.x > 0) {
+                    neighborsToCarve.push(this.grid[cell.y][cell.x - 1]);
+                }
+                // 從可能的鄰居中隨機選擇一個來打通牆壁
+                if (neighborsToCarve.length > 0) {
+                    const neighbor = neighborsToCarve[Math.floor(Math.random() * neighborsToCarve.length)];
+                    this.removeWalls(cell, neighbor);
+                }
             }
         }
         return this.grid;
@@ -615,3 +644,4 @@ createSolveAndPrintMaze(15, 10, 'prim');
 createSolveAndPrintMaze(15, 10, 'kruskal');
 createSolveAndPrintMaze(15, 10, 'wilson');
 createSolveAndPrintMaze(15, 10, 'growing-tree');
+createSolveAndPrintMaze(15, 10, 'binary-tree');
