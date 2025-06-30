@@ -51,7 +51,7 @@ class App {
   }
 
   private populateSelects() {
-    const algorithms: MazeGenerationAlgorithm[] = ['recursive-backtracker', 'recursive-backtracker-biased', 'prim', 'kruskal', 'wilson', 'growing-tree', 'binary-tree', 'aldous-broder'];
+    const algorithms: MazeGenerationAlgorithm[] = ['recursive-backtracker', 'recursive-backtracker-biased', 'prim', 'kruskal', 'wilson', 'growing-tree', 'binary-tree', 'aldous-broder', 'sidewinder'];
     algorithms.forEach(algo => {
       const option = document.createElement('option');
       option.value = algo;

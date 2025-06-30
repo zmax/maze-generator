@@ -124,6 +124,7 @@ async function main() {
   await createAndSolveMaze(15, 10, 'growing-tree', { seed: mazeSeed, growingTreeStrategy: 'random' });
   await createAndSolveMaze(15, 10, 'binary-tree', { seed: mazeSeed, binaryTreeBias: 'south-east' });
   await createAndSolveMaze(15, 10, 'aldous-broder', { seed: mazeSeed });
+  await createAndSolveMaze(15, 10, 'sidewinder', { seed: mazeSeed });
 }
 
 main();

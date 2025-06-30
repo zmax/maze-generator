@@ -70,6 +70,8 @@ export class MazeGenerator {
         return await this.generateWithBinaryTree();
       case 'aldous-broder':
         return await this.generateWithAldousBroder();
+      case 'sidewinder':
+        return await this.generateWithSidewinder();
       case 'recursive-backtracker':
       case 'recursive-backtracker-biased':
       default:
@@ -423,6 +425,57 @@ export class MazeGenerator {
       }
     }
 
+    return this.grid;
+  }
+
+  /**
+   * 使用「響尾蛇演算法」(Sidewinder algorithm) 產生迷宮。
+   * 這是一種逐行處理的快速演算法，會產生強烈的水平紋理。
+   * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
+   */
+  private async generateWithSidewinder(): Promise<Cell[][]> {
+    const onStep = this.options.onStep;
+
+    // 逐行處理
+    for (let y = 0; y < this.height; y++) {
+      let currentRun: Cell[] = [];
+      for (let x = 0; x < this.width; x++) {
+        const currentCell = this.grid[y][x];
+        currentRun.push(currentCell);
+
+        const atEastBoundary = (x === this.width - 1);
+        const atNorthBoundary = (y === 0);
+
+        // 決定是否結束這一段的向東延伸
+        // 在東邊界必須結束；在北邊界永不結束（形成一條長廊）
+        const shouldCloseRun = atEastBoundary || (!atNorthBoundary && this.random() < 0.5);
+
+        if (shouldCloseRun) {
+          // 從這一段中隨機選一個儲存格向上打通
+          const passageCell = currentRun[Math.floor(this.random() * currentRun.length)];
+          
+          if (!atNorthBoundary) {
+              const northNeighbor = this.grid[passageCell.y - 1][passageCell.x];
+              removeWalls(passageCell, northNeighbor);
+          }
+
+          if (onStep) {
+              await onStep({ grid: this.grid, activeSet: [...currentRun], currentCell: passageCell });
+          }
+          
+          // 清空段落，開始新的
+          currentRun = [];
+        } else {
+          // 繼續向東打通
+          const eastNeighbor = this.grid[y][x + 1];
+          removeWalls(currentCell, eastNeighbor);
+          if (onStep) {
+              await onStep({ grid: this.grid, activeSet: [...currentRun, eastNeighbor] });
+          }
+        }
+      }
+    }
     return this.grid;
   }
 
