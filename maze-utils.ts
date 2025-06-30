@@ -73,3 +73,18 @@ export function getNeighbors(cell: Cell, grid: Cell[][], width: number, height: 
 export function getUnvisitedNeighbors(cell: Cell, grid: Cell[][], width: number, height: number): Cell[] {
   return getNeighbors(cell, grid, width, height).filter(neighbor => !neighbor.visited);
 }
+
+/**
+ * 建立一個基於種子的偽隨機數生成器 (PRNG)。
+ * 使用 Mulberry32 演算法，這是一個簡單且快速的 32 位元 PRNG。
+ * @param seed 用於初始化生成器的數字種子。
+ * @returns {() => number} 一個函式，每次呼叫時回傳一個 [0, 1) 之間的偽隨機數。
+ */
+export function createSeededRandom(seed: number): () => number {
+  return function() {
+    var t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}

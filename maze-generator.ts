@@ -1,5 +1,5 @@
 import type { Cell, MazeGenerationAlgorithm, MazeGeneratorOptions } from './types';
-import { getNeighbors, getUnvisitedNeighbors, removeWalls } from './maze-utils';
+import { createSeededRandom, getNeighbors, getUnvisitedNeighbors, removeWalls } from './maze-utils';
 import { DisjointSet } from './data-structures/disjoint-set';
 
 /**
@@ -44,7 +44,7 @@ export class MazeGenerator {
 
     // 如果提供了種子，則建立一個可預測的隨機數生成器。否則，使用內建的 Math.random。
     if (typeof this.options.seed === 'number') {
-      this.random = this.createSeededRandom(this.options.seed);
+      this.random = createSeededRandom(this.options.seed);
     } else {
       this.random = Math.random;
     }
@@ -73,21 +73,6 @@ export class MazeGenerator {
       case 'recursive-backtracker-biased':
       default:
         return this.generateWithRecursiveBacktracker();
-    }
-  }
-
-  /**
-   * 建立一個基於種子的偽隨機數生成器 (PRNG)。
-   * 使用 Mulberry32 演算法，這是一個簡單且快速的 32 位元 PRNG。
-   * @param seed 用於初始化生成器的數字種子。
-   * @returns {() => number} 一個函式，每次呼叫時回傳一個 [0, 1) 之間的偽隨機數。
-   */
-  private createSeededRandom(seed: number): () => number {
-    return function() {
-      var t = seed += 0x6D2B79F5;
-      t = Math.imul(t ^ t >>> 15, t | 1);
-      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
     }
   }
 
