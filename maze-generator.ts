@@ -1,4 +1,4 @@
-import type { Cell, MazeGenerationAlgorithm } from './types';
+import type { Cell, MazeGenerationAlgorithm, MazeGeneratorOptions } from './types';
 
 /**
  * 並查集 (Disjoint Set Union) 資料結構，用於 Kruskal 演算法。
@@ -88,24 +88,30 @@ export class MazeGenerator {
   private stack: Cell[] = [];
   private algorithm: MazeGenerationAlgorithm;
   private random: () => number;
+  private options: MazeGeneratorOptions;
 
   /**
    * @param width 迷宮的寬度（儲存格數量）
    * @param height 迷宮的高度（儲存格數量）
    * @param algorithm 要使用的生成演算法
-   * @param seed (可選) 用於產生可重現迷宮的隨機種子。
+   * @param options (可選) 包含演算法特定設定和隨機種子的物件。
    */
-  constructor(width: number, height: number, algorithm: MazeGenerationAlgorithm = 'recursive-backtracker', seed?: number) {
+  constructor(width: number, height: number, algorithm: MazeGenerationAlgorithm = 'recursive-backtracker', options: MazeGeneratorOptions = {}) {
     if (width <= 0 || height <= 0) {
       throw new Error("Width and height must be greater than 0.");
     }
     this.width = width;
     this.height = height;
     this.algorithm = algorithm;
+    this.options = {
+      // 為 growing-tree 設定預設策略
+      growingTreeStrategy: 'random',
+      ...options,
+    };
 
     // 如果提供了種子，則建立一個可預測的隨機數生成器。否則，使用內建的 Math.random。
-    if (seed !== undefined) {
-      this.random = this.createSeededRandom(seed);
+    if (this.options.seed !== undefined) {
+      this.random = this.createSeededRandom(this.options.seed);
     } else {
       this.random = Math.random;
     }
@@ -348,8 +354,21 @@ export class MazeGenerator {
       // - 'newest': activeSet[activeSet.length - 1] (類似遞迴回溯)
       // - 'random': 隨機選擇 (類似 Prim's)
       // - 'oldest': activeSet[0] (產生長廊)
-      // 這裡我們使用隨機選擇策略，以產生類似 Prim's 的迷宮。
-      const index = Math.floor(this.random() * activeSet.length);
+      const strategy = this.options.growingTreeStrategy;
+      let index: number;
+
+      switch (strategy) {
+        case 'newest':
+          index = activeSet.length - 1;
+          break;
+        case 'oldest':
+          index = 0;
+          break;
+        case 'random':
+        default:
+          index = Math.floor(this.random() * activeSet.length);
+          break;
+      }
       const currentCell = activeSet[index];
 
       // 3b. 尋找該儲存格的未訪問鄰居

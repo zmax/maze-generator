@@ -12,7 +12,7 @@
   - **普林演算法 (Prim's Algorithm)**: 從一點開始生長，風格類似最小生成樹。
   - **克魯斯克爾演算法 (Kruskal's Algorithm)**: 產生含有大量短小死路的迷宮。
   - **威爾遜演算法 (Wilson's Algorithm)**: 透過隨機遊走產生，生成非常均勻、無偏見的迷宮。
-  - **生長樹演算法 (Growing Tree Algorithm)**: 普林演算法和遞迴回溯法的混合體，非常靈活。
+  - **生長樹演算法 (Growing Tree Algorithm)**: 普林演算法和遞迴回溯法的混合體，可配置不同策略（最新、隨機、最舊）以產生不同風格的迷宮。
   - **二元樹演算法 (Binary Tree Algorithm)**: 速度極快，但會產生有強烈對角線偏向的迷宮。
 - **A\* 求解器**: 使用 A* 演算法高效地尋找從起點到終點的最短路徑。
 - **主控台視覺化**: 將生成的迷宮和解答路徑以 ASCII 形式清晰地繪製在主控台中。
@@ -47,11 +47,14 @@
 import { MazeGenerator } from './maze-generator';
 import { MazeSolver } from './maze-solver';
 import { drawMazeToConsole } from './maze-drawer';
-import type { Point } from './types';
+import type { Point, MazeGeneratorOptions } from './types';
 
 // 1. 選擇一種演算法，產生一個 20x10 的迷宮
-// 您可以傳入一個可選的種子來產生可重現的迷宮
-const mazeGenerator = new MazeGenerator(20, 10, 'prim', 12345);
+const options: MazeGeneratorOptions = {
+  seed: 12345,
+  growingTreeStrategy: 'newest' // 'newest', 'random', or 'oldest'
+};
+const mazeGenerator = new MazeGenerator(20, 10, 'growing-tree', options);
 const mazeGrid = mazeGenerator.generate();
 
 // 2. 設定迷宮的入口和出口

@@ -27,3 +27,19 @@ export interface Point {
   x: number;
   y: number;
 }
+
+/**
+ * 'growing-tree' 演算法的儲存格選擇策略
+ * - 'newest': 選擇最新的儲存格 (類似遞迴回溯法)
+ * - 'random': 隨機選擇一個儲存格 (類似普林演算法)
+ * - 'oldest': 選擇最舊的儲存格 (會產生長廊)
+ */
+export type GrowingTreeStrategy = 'newest' | 'random' | 'oldest';
+
+/**
+ * MazeGenerator 的可選設定
+ */
+export interface MazeGeneratorOptions {
+  seed?: number;
+  growingTreeStrategy?: GrowingTreeStrategy;
+}
