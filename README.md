@@ -14,6 +14,7 @@
   - **威爾遜演算法 (Wilson's Algorithm)**: 透過隨機遊走產生，生成非常均勻、無偏見的迷宮。
   - **生長樹演算法 (Growing Tree Algorithm)**: 普林演算法和遞迴回溯法的混合體，可配置不同策略（最新、隨機、最舊）以產生不同風格的迷宮。
   - **二元樹演算法 (Binary Tree Algorithm)**: 速度極快，可配置偏好方向（例如北方/西方）以產生不同紋理。
+  - **Aldous-Broder 演算法**: 另一種產生均勻生成樹的演算法，原理簡單但效率較低。
 - **A\* 求解器**: 使用 A* 演算法高效地尋找從起點到終點的最短路徑。
 - **主控台視覺化**: 將生成的迷宮和解答路徑以 ASCII 形式清晰地繪製在主控台中。
 - **可重現的隨機性**: 可選的隨機種子允許您重現完全相同的迷宮。
@@ -53,10 +54,10 @@ import type { Point, MazeGeneratorOptions } from './types';
 const options: MazeGeneratorOptions = {
   seed: 12345,
   growingTreeStrategy: 'newest', // for 'growing-tree': 'newest' | 'random' | 'oldest'
-  straightBias: 0.9, // for 'recursive-backtracker-biased': a value between 0.0 and 1.0
+  straightBias: 0.9,             // for 'recursive-backtracker-biased': a value between 0.0 and 1.0
   binaryTreeBias: 'south-east', // for 'binary-tree': 'north-west' | 'north-east' | 'south-west' | 'south-east'
 };
-const mazeGenerator = new MazeGenerator(20, 10, 'binary-tree', options);
+const mazeGenerator = new MazeGenerator(20, 10, 'aldous-broder', options);
 const mazeGrid = mazeGenerator.generate();
 
 // 2. 設定迷宮的入口和出口
@@ -72,7 +73,7 @@ const solver = new MazeSolver(mazeGrid);
 const path = solver.solve(start, end);
 
 // 4. 在主控台繪製迷宮和解答路徑
-console.log("使用 Binary Tree (south-east bias) 產生的 20x10 迷宮：");
+console.log("使用 Aldous-Broder 演算法產生的 20x10 迷宮：");
 drawMazeToConsole(mazeGrid, path);
 ```
 

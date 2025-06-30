@@ -40,5 +40,6 @@ createAndSolveMaze(15, 10, 'growing-tree', { seed: mazeSeed, growingTreeStrategy
 createAndSolveMaze(15, 10, 'growing-tree', { seed: mazeSeed, growingTreeStrategy: 'oldest' });
 createAndSolveMaze(15, 10, 'binary-tree', { seed: mazeSeed, binaryTreeBias: 'north-west' });
 createAndSolveMaze(15, 10, 'binary-tree', { seed: mazeSeed, binaryTreeBias: 'south-east' });
+createAndSolveMaze(15, 10, 'aldous-broder', { seed: mazeSeed });
 console.log("\n--- 以下為無種子 (隨機) 的迷宮 ---");
 createAndSolveMaze(15, 10, 'recursive-backtracker');

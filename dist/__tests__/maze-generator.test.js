@@ -42,6 +42,7 @@ describe('MazeGenerator', () => {
         'wilson',
         'growing-tree',
         'binary-tree',
+        'aldous-broder',
     ];
     algorithms.forEach(algo => {
         it(`should generate a maze using the ${algo} algorithm without errors`, () => {

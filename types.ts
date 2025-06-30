@@ -18,7 +18,7 @@ export interface Cell {
 /**
  * 定義可用的迷宮生成演算法類型
  */
-export type MazeGenerationAlgorithm = 'recursive-backtracker' | 'recursive-backtracker-biased' | "prim" | "kruskal" | "wilson" | "growing-tree" | "binary-tree";
+export type MazeGenerationAlgorithm = 'recursive-backtracker' | 'recursive-backtracker-biased' | "prim" | "kruskal" | "wilson" | "growing-tree" | "binary-tree" | "aldous-broder";
 
 /**
  * 代表一個點的座標

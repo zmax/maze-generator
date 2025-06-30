@@ -135,6 +135,8 @@ class MazeGenerator {
                 return this.generateWithGrowingTree();
             case 'binary-tree':
                 return this.generateWithBinaryTree();
+            case 'aldous-broder':
+                return this.generateWithAldousBroder();
             case 'recursive-backtracker':
             case 'recursive-backtracker-biased':
             default:
@@ -402,6 +404,33 @@ class MazeGenerator {
                     this.removeWalls(cell, neighbor);
                 }
             }
+        }
+        return this.grid;
+    }
+    /**
+     * 使用「Aldous-Broder 演算法」產生迷宮。
+     * 這是一種透過純粹的隨機遊走來產生均勻生成樹的演算法。
+     * @returns {Cell[][]} 產生的迷宮網格。
+     */
+    generateWithAldousBroder() {
+        // 1. 選擇一個隨機的起始儲存格
+        let currentCell = this.grid[Math.floor(this.random() * this.height)][Math.floor(this.random() * this.width)];
+        currentCell.visited = true;
+        // 2. 初始化未訪問儲存格的計數
+        let unvisitedCount = this.width * this.height - 1;
+        // 3. 當還有未訪問的儲存格時，持續進行隨機遊走
+        while (unvisitedCount > 0) {
+            // 3a. 隨機選擇一個鄰居
+            const neighbors = this.getNeighbors(currentCell);
+            const nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
+            // 3b. 如果鄰居未被訪問過
+            if (!nextCell.visited) {
+                this.removeWalls(currentCell, nextCell);
+                nextCell.visited = true;
+                unvisitedCount--;
+            }
+            // 3c. 移動到下一個儲存格，不論它是否已被訪問
+            currentCell = nextCell;
         }
         return this.grid;
     }
