@@ -35,6 +35,7 @@ class MazeGenerator {
             case 'kruskal':
                 return this.generateWithKruskal();
             case 'recursive-backtracker':
+            case 'recursive-backtracker-biased':
             default:
                 return this.generateWithRecursiveBacktracker();
         }
@@ -55,13 +56,33 @@ class MazeGenerator {
             const neighbors = this.getUnvisitedNeighbors(currentCell);
             // 3. 如果有未訪問的鄰居
             if (neighbors.length > 0) {
-                // 隨機選擇一個鄰居
-                const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+                let nextCell;
+                if (this.algorithm === 'recursive-backtracker-biased') {
+                    const previousCell = this.stack.length > 1 ? this.stack[this.stack.length - 2] : null;
+                    let straightNeighbor = undefined;
+                    if (previousCell) {
+                        const lastMoveDx = currentCell.x - previousCell.x;
+                        const lastMoveDy = currentCell.y - previousCell.y;
+                        straightNeighbor = neighbors.find(n => n.x - currentCell.x === lastMoveDx && n.y - currentCell.y === lastMoveDy);
+                    }
+                    // 75% chance to continue straight, otherwise pick a random neighbor
+                    const bias = 0.75;
+                    if (straightNeighbor && Math.random() < bias) {
+                        nextCell = straightNeighbor;
+                    }
+                    else {
+                        nextCell = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    }
+                }
+                else {
+                    // Original random selection
+                    nextCell = neighbors[Math.floor(Math.random() * neighbors.length)];
+                }
                 // 打通牆壁
-                this.removeWalls(currentCell, randomNeighbor);
+                this.removeWalls(currentCell, nextCell);
                 // 將鄰居標記為已訪問並推入堆疊
-                randomNeighbor.visited = true;
-                this.stack.push(randomNeighbor);
+                nextCell.visited = true;
+                this.stack.push(nextCell);
             }
             else {
                 // 如果沒有未訪問的鄰居，則從堆疊中彈出儲存格（回溯）
@@ -362,5 +383,6 @@ function createSolveAndPrintMaze(width, height, algorithm) {
     drawMazeToConsole(mazeData, path);
 }
 createSolveAndPrintMaze(15, 10, 'recursive-backtracker');
+createSolveAndPrintMaze(15, 10, 'recursive-backtracker-biased');
 createSolveAndPrintMaze(15, 10, 'prim');
 createSolveAndPrintMaze(15, 10, 'kruskal');
