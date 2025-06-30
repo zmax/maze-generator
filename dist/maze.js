@@ -34,6 +34,8 @@ class MazeGenerator {
                 return this.generateWithPrim();
             case 'kruskal':
                 return this.generateWithKruskal();
+            case 'wilson':
+                return this.generateWithWilson();
             case 'recursive-backtracker':
             case 'recursive-backtracker-biased':
             default:
@@ -171,6 +173,49 @@ class MazeGenerator {
         return this.grid;
     }
     /**
+     * Generates a maze using Wilson's algorithm.
+     * @returns {Cell[][]} The generated maze grid.
+     */
+    generateWithWilson() {
+        // 1. Choose a random cell and mark it as part of the maze.
+        const initialCell = this.grid[Math.floor(Math.random() * this.height)][Math.floor(Math.random() * this.width)];
+        initialCell.visited = true;
+        // 2. Create a list of all non-visited cells and shuffle for random start points.
+        const unvisited = this.grid.flat().filter(c => !c.visited);
+        for (let i = unvisited.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [unvisited[i], unvisited[j]] = [unvisited[j], unvisited[i]];
+        }
+        for (const startCell of unvisited) {
+            // If this cell was already visited by a previous walk, skip it.
+            if (startCell.visited)
+                continue;
+            let walkPath = [startCell];
+            let current = startCell;
+            // 3. Perform a loop-erased random walk until we hit a visited cell.
+            while (!current.visited) {
+                const neighbors = this.getNeighbors(current);
+                const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                const existingIndex = walkPath.indexOf(next);
+                if (existingIndex !== -1) {
+                    // Loop detected! Erase it by slicing the path.
+                    walkPath = walkPath.slice(0, existingIndex + 1);
+                }
+                else {
+                    walkPath.push(next);
+                }
+                current = next;
+            }
+            // 4. Carve the completed walk into the maze.
+            for (let i = 0; i < walkPath.length - 1; i++) {
+                this.removeWalls(walkPath[i], walkPath[i + 1]);
+                // Mark cells as visited now, so future walks can find the maze.
+                walkPath[i].visited = true;
+            }
+        }
+        return this.grid;
+    }
+    /**
      * 初始化網格，建立所有儲存格並設定所有牆壁
      */
     initializeGrid() {
@@ -188,20 +233,26 @@ class MazeGenerator {
      * @returns {Cell[]} 未訪問的鄰居陣列
      */
     getUnvisitedNeighbors(cell) {
+        return this.getNeighbors(cell).filter(neighbor => !neighbor.visited);
+    }
+    /**
+     * Gets all physical neighbors of a cell, regardless of visited status.
+     * @param cell The cell to check.
+     * @returns {Cell[]} An array of neighboring cells.
+     */
+    getNeighbors(cell) {
         const neighbors = [];
         const { x, y } = cell;
-        // 定義四個方向的移動向量
         const directions = [
-            { dx: 0, dy: -1 }, // 上
-            { dx: 1, dy: 0 }, // 右
-            { dx: 0, dy: 1 }, // 下
-            { dx: -1, dy: 0 }, // 左
+            { dx: 0, dy: -1 }, // Up
+            { dx: 1, dy: 0 }, // Right
+            { dx: 0, dy: 1 }, // Down
+            { dx: -1, dy: 0 }, // Left
         ];
         for (const { dx, dy } of directions) {
             const newX = x + dx;
             const newY = y + dy;
-            // 檢查鄰居是否在邊界內且未被訪問
-            if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height && !this.grid[newY][newX].visited) {
+            if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height) {
                 neighbors.push(this.grid[newY][newX]);
             }
         }
@@ -386,3 +437,4 @@ createSolveAndPrintMaze(15, 10, 'recursive-backtracker');
 createSolveAndPrintMaze(15, 10, 'recursive-backtracker-biased');
 createSolveAndPrintMaze(15, 10, 'prim');
 createSolveAndPrintMaze(15, 10, 'kruskal');
+createSolveAndPrintMaze(15, 10, 'wilson');
