@@ -1,5 +1,5 @@
 {
-  "name": "p1",
+  "name": "@starck/maze-generator",
   "version": "1.0.0",
   "description": "",
   "main": "dist/maze.js",
