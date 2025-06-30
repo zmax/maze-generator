@@ -12,9 +12,11 @@ import type { MazeGenerationAlgorithm, MazeGeneratorOptions } from './types';
  */
 function createAndSolveMaze(width: number, height: number, algorithm: MazeGenerationAlgorithm, options?: MazeGeneratorOptions): void {
   const seed = options?.seed;
-  const gtStrategy = (algorithm === 'growing-tree' && options?.growingTreeStrategy) ? ` (${options.growingTreeStrategy})` : '';
+  const gtStrategyInfo = (algorithm === 'growing-tree' && options?.growingTreeStrategy) ? ` (${options.growingTreeStrategy})` : '';
+  const rbBiasInfo = (algorithm === 'recursive-backtracker-biased' && options?.straightBias) ? ` (bias: ${options.straightBias})` : '';
+  const btBiasInfo = (algorithm === 'binary-tree' && options?.binaryTreeBias) ? ` (${options.binaryTreeBias})` : '';
   const algorithmName = algorithm.charAt(0).toUpperCase() + algorithm.slice(1).replace(/-(\w)/g, (g) => g[1].toUpperCase());
-  console.log(`\n這是一個 ${width}x${height} 的迷宮 (使用 ${algorithmName}${gtStrategy} 演算法${seed !== undefined ? `，種子: ${seed}` : ''}，包含解答路徑)：`);
+  console.log(`\n這是一個 ${width}x${height} 的迷宮 (使用 ${algorithmName}${gtStrategyInfo}${rbBiasInfo}${btBiasInfo} 演算法${seed !== undefined ? `，種子: ${seed}` : ''}，包含解答路徑)：`);
   const mazeGenerator = new MazeGenerator(width, height, algorithm, options);
   const mazeData = mazeGenerator.generate();
   const start = { x: 0, y: 0 };
@@ -34,14 +36,16 @@ function createAndSolveMaze(width: number, height: number, algorithm: MazeGenera
 const mazeSeed = 12345;
 
 createAndSolveMaze(15, 10, 'recursive-backtracker', { seed: mazeSeed });
-createAndSolveMaze(15, 10, 'recursive-backtracker-biased', { seed: mazeSeed });
+createAndSolveMaze(15, 10, 'recursive-backtracker-biased', { seed: mazeSeed, straightBias: 0.25 });
+createAndSolveMaze(15, 10, 'recursive-backtracker-biased', { seed: mazeSeed, straightBias: 0.90 });
 createAndSolveMaze(15, 10, 'prim', { seed: mazeSeed });
 createAndSolveMaze(15, 10, 'kruskal', { seed: mazeSeed });
 createAndSolveMaze(15, 10, 'wilson', { seed: mazeSeed });
-createAndSolveMaze(15, 10, 'binary-tree', { seed: mazeSeed });
 createAndSolveMaze(15, 10, 'growing-tree', { seed: mazeSeed, growingTreeStrategy: 'newest' });
 createAndSolveMaze(15, 10, 'growing-tree', { seed: mazeSeed, growingTreeStrategy: 'random' });
 createAndSolveMaze(15, 10, 'growing-tree', { seed: mazeSeed, growingTreeStrategy: 'oldest' });
+createAndSolveMaze(15, 10, 'binary-tree', { seed: mazeSeed, binaryTreeBias: 'north-west' });
+createAndSolveMaze(15, 10, 'binary-tree', { seed: mazeSeed, binaryTreeBias: 'south-east' });
 
 console.log("\n--- 以下為無種子 (隨機) 的迷宮 ---");
 createAndSolveMaze(15, 10, 'recursive-backtracker');

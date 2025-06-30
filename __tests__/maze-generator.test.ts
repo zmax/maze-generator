@@ -79,4 +79,37 @@ describe('MazeGenerator', () => {
     expect(strNewest).not.toEqual(strOldest);
     expect(strRandom).not.toEqual(strOldest);
   });
+
+  it('should throw an error for invalid straightBias option', () => {
+    expect(() => new MazeGenerator(10, 10, 'recursive-backtracker-biased', { straightBias: -0.1 })).toThrow('straightBias option must be between 0.0 and 1.0.');
+    expect(() => new MazeGenerator(10, 10, 'recursive-backtracker-biased', { straightBias: 1.1 })).toThrow('straightBias option must be between 0.0 and 1.0.');
+  });
+
+  it('should produce different mazes for different straightBias values with the same seed', () => {
+    const seed = 888;
+    const genLowBias = new MazeGenerator(10, 10, 'recursive-backtracker-biased', { seed, straightBias: 0.1 });
+    const gridLowBias = genLowBias.generate();
+
+    const genHighBias = new MazeGenerator(10, 10, 'recursive-backtracker-biased', { seed, straightBias: 0.9 });
+    const gridHighBias = genHighBias.generate();
+
+    const strLowBias = JSON.stringify(gridLowBias);
+    const strHighBias = JSON.stringify(gridHighBias);
+
+    expect(strLowBias).not.toEqual(strHighBias);
+  });
+
+  it('should produce different mazes for different binary-tree biases with the same seed', () => {
+    const seed = 777;
+    const genNW = new MazeGenerator(10, 10, 'binary-tree', { seed, binaryTreeBias: 'north-west' });
+    const gridNW = genNW.generate();
+
+    const genSE = new MazeGenerator(10, 10, 'binary-tree', { seed, binaryTreeBias: 'south-east' });
+    const gridSE = genSE.generate();
+
+    const strNW = JSON.stringify(gridNW);
+    const strSE = JSON.stringify(gridSE);
+
+    expect(strNW).not.toEqual(strSE);
+  });
 });

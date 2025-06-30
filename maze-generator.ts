@@ -106,11 +106,20 @@ export class MazeGenerator {
     this.options = {
       // 為 growing-tree 設定預設策略
       growingTreeStrategy: 'random',
+      // 為 recursive-backtracker-biased 設定預設偏好值
+      straightBias: 0.75,
+      // 為 binary-tree 設定預設偏好方向
+      binaryTreeBias: 'north-west',
       ...options,
     };
 
+    // 驗證選項的有效性
+    if (typeof this.options.straightBias === 'number' && (this.options.straightBias < 0 || this.options.straightBias > 1)) {
+      throw new Error("straightBias option must be between 0.0 and 1.0.");
+    }
+
     // 如果提供了種子，則建立一個可預測的隨機數生成器。否則，使用內建的 Math.random。
-    if (this.options.seed !== undefined) {
+    if (typeof this.options.seed === 'number') {
       this.random = this.createSeededRandom(this.options.seed);
     } else {
       this.random = Math.random;
@@ -185,8 +194,8 @@ export class MazeGenerator {
             straightNeighbor = neighbors.find(n => n.x - currentCell.x === lastMoveDx && n.y - currentCell.y === lastMoveDy);
           }
 
-          // 有 75% 的機率繼續直線前進，否則隨機選擇一個鄰居
-          const bias = 0.75;
+          // 根據設定的偏好值決定是否繼續直線前進
+          const bias = this.options.straightBias!;
           if (straightNeighbor && this.random() < bias) {
             nextCell = straightNeighbor;
           } else {
@@ -395,18 +404,27 @@ export class MazeGenerator {
    * @returns {Cell[][]} 產生的迷宮網格。
    */
   private generateWithBinaryTree(): Cell[][] {
+    const bias = this.options.binaryTreeBias!;
+    const hasNorth = bias.includes('north');
+    const hasSouth = bias.includes('south');
+    const hasWest = bias.includes('west');
+    const hasEast = bias.includes('east');
+
     for (const row of this.grid) {
       for (const cell of row) {
         const neighborsToCarve: Cell[] = [];
 
-        // 演算法可以偏向任何方向，這裡我們選擇北方和西方
-        // 如果有北方鄰居，則將其作為一個可能的連接對象
-        if (cell.y > 0) {
+        if (hasNorth && cell.y > 0) {
           neighborsToCarve.push(this.grid[cell.y - 1][cell.x]);
         }
-        // 如果有西方鄰居，則將其作為一個可能的連接對象
-        if (cell.x > 0) {
+        if (hasSouth && cell.y < this.height - 1) {
+          neighborsToCarve.push(this.grid[cell.y + 1][cell.x]);
+        }
+        if (hasWest && cell.x > 0) {
           neighborsToCarve.push(this.grid[cell.y][cell.x - 1]);
+        }
+        if (hasEast && cell.x < this.width - 1) {
+          neighborsToCarve.push(this.grid[cell.y][cell.x + 1]);
         }
 
         // 從可能的鄰居中隨機選擇一個來打通牆壁

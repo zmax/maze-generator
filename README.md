@@ -8,12 +8,12 @@
 
 - **多種生成演算法**:
   - **遞迴回溯法 (Recursive Backtracker)**: 經典的深度優先搜尋法，產生路徑長且曲折的迷宮。
-  - **帶有偏好性的遞迴回溯法 (Biased Recursive Backtracker)**: 產生較多長廊的變體。
+  - **帶有偏好性的遞迴回溯法 (Biased Recursive Backtracker)**: 產生較多長廊的變體，直線偏好值可配置。
   - **普林演算法 (Prim's Algorithm)**: 從一點開始生長，風格類似最小生成樹。
   - **克魯斯克爾演算法 (Kruskal's Algorithm)**: 產生含有大量短小死路的迷宮。
   - **威爾遜演算法 (Wilson's Algorithm)**: 透過隨機遊走產生，生成非常均勻、無偏見的迷宮。
   - **生長樹演算法 (Growing Tree Algorithm)**: 普林演算法和遞迴回溯法的混合體，可配置不同策略（最新、隨機、最舊）以產生不同風格的迷宮。
-  - **二元樹演算法 (Binary Tree Algorithm)**: 速度極快，但會產生有強烈對角線偏向的迷宮。
+  - **二元樹演算法 (Binary Tree Algorithm)**: 速度極快，可配置偏好方向（例如北方/西方）以產生不同紋理。
 - **A\* 求解器**: 使用 A* 演算法高效地尋找從起點到終點的最短路徑。
 - **主控台視覺化**: 將生成的迷宮和解答路徑以 ASCII 形式清晰地繪製在主控台中。
 - **可重現的隨機性**: 可選的隨機種子允許您重現完全相同的迷宮。
@@ -52,9 +52,11 @@ import type { Point, MazeGeneratorOptions } from './types';
 // 1. 選擇一種演算法，產生一個 20x10 的迷宮
 const options: MazeGeneratorOptions = {
   seed: 12345,
-  growingTreeStrategy: 'newest' // 'newest', 'random', or 'oldest'
+  growingTreeStrategy: 'newest', // for 'growing-tree': 'newest' | 'random' | 'oldest'
+  straightBias: 0.9, // for 'recursive-backtracker-biased': a value between 0.0 and 1.0
+  binaryTreeBias: 'south-east', // for 'binary-tree': 'north-west' | 'north-east' | 'south-west' | 'south-east'
 };
-const mazeGenerator = new MazeGenerator(20, 10, 'growing-tree', options);
+const mazeGenerator = new MazeGenerator(20, 10, 'binary-tree', options);
 const mazeGrid = mazeGenerator.generate();
 
 // 2. 設定迷宮的入口和出口
@@ -70,7 +72,7 @@ const solver = new MazeSolver(mazeGrid);
 const path = solver.solve(start, end);
 
 // 4. 在主控台繪製迷宮和解答路徑
-console.log("使用 Prim's Algorithm 產生的 20x10 迷宮：");
+console.log("使用 Binary Tree (south-east bias) 產生的 20x10 迷宮：");
 drawMazeToConsole(mazeGrid, path);
 ```
 

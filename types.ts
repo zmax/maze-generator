@@ -37,9 +37,24 @@ export interface Point {
 export type GrowingTreeStrategy = 'newest' | 'random' | 'oldest';
 
 /**
+ * 'binary-tree' 演算法的偏好方向
+ * - 'north-west': 偏向北方和西方
+ * - 'north-east': 偏向北方和東方
+ * - 'south-west': 偏向南方和西方
+ * - 'south-east': 偏向南方和東方
+ */
+export type BinaryTreeBias = 'north-west' | 'north-east' | 'south-west' | 'south-east';
+
+/**
  * MazeGenerator 的可選設定
  */
 export interface MazeGeneratorOptions {
   seed?: number;
   growingTreeStrategy?: GrowingTreeStrategy;
+  /**
+   * 'recursive-backtracker-biased' 演算法中，選擇直線路徑的偏好機率。
+   * 應介於 0.0 (無偏好) 到 1.0 (極強偏好) 之間。
+   */
+  straightBias?: number;
+  binaryTreeBias?: BinaryTreeBias;
 }
