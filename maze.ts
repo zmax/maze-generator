@@ -18,7 +18,7 @@ interface Cell {
 /**
  * 定義可用的迷宮生成演算法類型
  */
-export type MazeGenerationAlgorithm = 'recursive-backtracker' | 'recursive-backtracker-biased' | "prim" | "kruskal" | "wilson";
+export type MazeGenerationAlgorithm = 'recursive-backtracker' | 'recursive-backtracker-biased' | "prim" | "kruskal" | "wilson" | "growing-tree";
 
 /**
  * 一個使用多種演算法來產生迷宮的類別。
@@ -57,6 +57,8 @@ export class MazeGenerator {
         return this.generateWithKruskal();
       case 'wilson':
         return this.generateWithWilson();
+      case 'growing-tree':
+        return this.generateWithGrowingTree();
       case 'recursive-backtracker':
       case 'recursive-backtracker-biased':
       default:
@@ -249,6 +251,49 @@ export class MazeGenerator {
   }
 
   /**
+   * 使用「生長樹演算法」(Growing Tree algorithm) 產生迷宮。
+   * 這個演算法是遞迴回溯法和普林演算法的綜合體。
+   * @returns {Cell[][]} 產生的迷宮網格。
+   */
+  private generateWithGrowingTree(): Cell[][] {
+    // 1. 建立一個作用中儲存格的列表
+    const activeSet: Cell[] = [];
+
+    // 2. 選擇一個隨機的起始儲存格，將其標記為已訪問，並加入作用中列表
+    const startCell = this.grid[Math.floor(Math.random() * this.height)][Math.floor(Math.random() * this.width)];
+    startCell.visited = true;
+    activeSet.push(startCell);
+
+    // 3. 當作用中列表不為空時
+    while (activeSet.length > 0) {
+      // 3a. 從作用中列表中選擇一個儲存格。
+      // 不同的選擇策略會產生不同風格的迷宮：
+      // - 'newest': activeSet[activeSet.length - 1] (類似遞迴回溯)
+      // - 'random': 隨機選擇 (類似 Prim's)
+      // - 'oldest': activeSet[0] (產生長廊)
+      // 這裡我們使用隨機選擇策略，以產生類似 Prim's 的迷宮。
+      const index = Math.floor(Math.random() * activeSet.length);
+      const currentCell = activeSet[index];
+
+      // 3b. 尋找該儲存格的未訪問鄰居
+      const neighbors = this.getUnvisitedNeighbors(currentCell);
+
+      if (neighbors.length > 0) {
+        // 3c. 如果有未訪問的鄰居，隨機選擇一個
+        const nextCell = neighbors[Math.floor(Math.random() * neighbors.length)];
+        this.removeWalls(currentCell, nextCell);
+        nextCell.visited = true;
+        activeSet.push(nextCell); // 將新儲存格加入作用中列表
+      } else {
+        // 3d. 如果沒有未訪問的鄰居，將目前儲存格從作用中列表移除
+        activeSet.splice(index, 1);
+      }
+    }
+
+    return this.grid;
+  }
+
+  /**
    * 初始化網格，建立所有儲存格並設定所有牆壁
    */
   private initializeGrid(): void {
@@ -333,6 +378,93 @@ export class MazeGenerator {
 }
 
 /**
+ * 一個使用最小堆實作的優先權佇列，用於 A* 演算法。
+ * 優先權越低，越先被取出。
+ */
+class PriorityQueue<T> {
+  private heap: { item: T; priority: number }[] = [];
+
+  /**
+   * 插入一個帶有優先權的項目
+   * @param item 要插入的項目
+   * @param priority 優先權 (數值越小越高)
+   */
+  public insert(item: T, priority: number): void {
+    this.heap.push({ item, priority });
+    this.siftUp(this.heap.length - 1);
+  }
+
+  /**
+   * 取出並回傳優先權最高的項目 (最小的值)
+   * @returns {T | null} 優先權最高的項目，如果佇列為空則回傳 null
+   */
+  public extractMin(): T | null {
+    if (this.isEmpty()) {
+      return null;
+    }
+    this.swap(0, this.heap.length - 1);
+    const { item } = this.heap.pop()!;
+    if (!this.isEmpty()) {
+      this.siftDown(0);
+    }
+    return item;
+  }
+
+  /**
+   * 檢查佇列是否為空
+   * @returns {boolean} 如果為空則為 true
+   */
+  public isEmpty(): boolean {
+    return this.heap.length === 0;
+  }
+
+  private getParentIndex(i: number): number {
+    return Math.floor((i - 1) / 2);
+  }
+
+  private getLeftChildIndex(i: number): number {
+    return 2 * i + 1;
+  }
+
+  private getRightChildIndex(i: number): number {
+    return 2 * i + 2;
+  }
+
+  private swap(i: number, j: number): void {
+    [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+  }
+
+  private siftUp(i: number): void {
+    let parentIndex = this.getParentIndex(i);
+    while (i > 0 && this.heap[i].priority < this.heap[parentIndex].priority) {
+      this.swap(i, parentIndex);
+      i = parentIndex;
+      parentIndex = this.getParentIndex(i);
+    }
+  }
+
+  private siftDown(i: number): void {
+    let minIndex = i;
+    const leftIndex = this.getLeftChildIndex(i);
+    const rightIndex = this.getRightChildIndex(i);
+    const size = this.heap.length;
+
+    if (leftIndex < size && this.heap[leftIndex].priority < this.heap[minIndex].priority) {
+      minIndex = leftIndex;
+    }
+
+    if (rightIndex < size && this.heap[rightIndex].priority < this.heap[minIndex].priority) {
+      minIndex = rightIndex;
+    }
+
+    if (i !== minIndex) {
+      this.swap(i, minIndex);
+      this.siftDown(minIndex);
+    }
+  }
+}
+
+/**
  * 使用 A* (A-star) 演算法來解決迷宮
  */
 export class MazeSolver {
@@ -357,8 +489,11 @@ export class MazeSolver {
     const startCell = this.grid[start.y][start.x];
     const endCell = this.grid[end.y][end.x];
 
-    // openSet: 待評估的節點集合
-    const openSet: Cell[] = [startCell];
+    // openSet: 使用優先權佇列來儲存待評估的節點，fScore 越低優先權越高。
+    const openSet = new PriorityQueue<Cell>();
+
+    // closedSet: 儲存已經評估過的節點，避免重複處理。
+    const closedSet = new Set<Cell>();
 
     // cameFrom: 記錄每個節點在最短路徑上的前一個節點
     const cameFrom = new Map<Cell, Cell>();
@@ -367,18 +502,20 @@ export class MazeSolver {
     const gScore = new Map<Cell, number>();
     gScore.set(startCell, 0);
 
-    // fScore: fScore[n] = gScore[n] + h(n)，代表從起點經過節點 n 到終點的預估總成本
-    const fScore = new Map<Cell, number>();
-    fScore.set(startCell, this.heuristic(startCell, endCell));
+    // 我們直接將 fScore 作為優先權插入佇列
+    const startFScore = this.heuristic(startCell, endCell);
+    openSet.insert(startCell, startFScore);
 
-    while (openSet.length > 0) {
-      // 在 openSet 中找到 fScore 最低的節點
-      let currentCell = openSet[0];
-      for (let i = 1; i < openSet.length; i++) {
-        if ((fScore.get(openSet[i]) ?? Infinity) < (fScore.get(currentCell) ?? Infinity)) {
-          currentCell = openSet[i];
-        }
+    while (!openSet.isEmpty()) {
+      // 從 openSet 中取出 fScore 最低的節點
+      const currentCell = openSet.extractMin()!;
+
+      // 如果我們已經處理過這個節點，就跳過。
+      // 這是必要的，因為我們可能會將同一個節點以不同的 fScore 多次加入佇列。
+      if (closedSet.has(currentCell)) {
+        continue;
       }
+      closedSet.add(currentCell);
 
       if (currentCell === endCell) {
         // 已到達終點，回溯路徑
@@ -390,10 +527,6 @@ export class MazeSolver {
         }
         return path;
       }
-
-      // 將目前節點從 openSet 中移除
-      const index = openSet.indexOf(currentCell);
-      openSet.splice(index, 1);
 
       const { x, y, walls } = currentCell;
       const traversableNeighbors: Cell[] = [];
@@ -409,10 +542,8 @@ export class MazeSolver {
           // 這條到達 neighbor 的路徑比之前任何路徑都好，記錄下來！
           cameFrom.set(neighbor, currentCell);
           gScore.set(neighbor, tentativeGScore);
-          fScore.set(neighbor, tentativeGScore + this.heuristic(neighbor, endCell));
-          if (!openSet.includes(neighbor)) {
-            openSet.push(neighbor);
-          }
+          const neighborFScore = tentativeGScore + this.heuristic(neighbor, endCell);
+          openSet.insert(neighbor, neighborFScore);
         }
       }
     }
@@ -495,3 +626,4 @@ createSolveAndPrintMaze(15, 10, 'recursive-backtracker-biased');
 createSolveAndPrintMaze(15, 10, 'prim');
 createSolveAndPrintMaze(15, 10, 'kruskal');
 createSolveAndPrintMaze(15, 10, 'wilson');
+createSolveAndPrintMaze(15, 10, 'growing-tree');
