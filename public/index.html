@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TypeScript 迷宮生成與求解器</title>
+  <style>
+    :root {
+      --bg-color: #f0f2f5;
+      --panel-bg: #ffffff;
+      --text-color: #333;
+      --primary-color: #1890ff;
+      --border-color: #d9d9d9;
+      --disabled-color: #f5f5f5;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      gap: 20px;
+      height: calc(100vh - 40px);
+    }
+    .controls {
+      width: 320px;
+      padding: 20px;
+      background-color: var(--panel-bg);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .canvas-container {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--panel-bg);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+      padding: 20px;
+    }
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+      border: 1px solid var(--border-color);
+    }
+    h1, h2 {
+      margin-top: 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      box-sizing: border-box;
+    }
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #40a9ff;
+    }
+    button:disabled {
+      background-color: var(--disabled-color);
+      color: #aaa;
+      cursor: not-allowed;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+    #stop-btn {
+      background-color: #f5222d;
+    }
+    #stop-btn:hover {
+      background-color: #ff4d4f;
+    }
+    .options-panel {
+      border-top: 1px solid var(--border-color);
+      padding-top: 15px;
+      margin-top: 15px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h1>迷宮設定</h1>
+    <div class="control-group">
+      <label for="algo-select">生成演算法</label>
+      <select id="algo-select"></select>
+    </div>
+    <div class="control-group">
+      <label for="width-input">寬度</label>
+      <input type="number" id="width-input" value="30" min="5" max="200">
+    </div>
+    <div class="control-group">
+      <label for="height-input">高度</label>
+      <input type="number" id="height-input" value="20" min="5" max="200">
+    </div>
+    <div class="control-group">
+      <label for="seed-input">隨機種子 (留空則隨機)</label>
+      <input type="number" id="seed-input" value="12345">
+    </div>
+    <div class="control-group">
+      <label for="delay-input">動畫延遲 (ms)</label>
+      <input type="number" id="delay-input" value="10" min="0">
+    </div>
+
+    <div class="options-panel">
+      <h2>演算法選項</h2>
+      <div id="rb-bias-option" class="control-group hidden">
+        <label for="rb-bias-input">直線偏好 (0.0 - 1.0)</label>
+        <input type="number" id="rb-bias-input" value="0.75" min="0" max="1" step="0.05">
+      </div>
+      <div id="gt-strategy-option" class="control-group hidden">
+        <label for="gt-strategy-select">生長樹策略</label>
+        <select id="gt-strategy-select"></select>
+      </div>
+      <div id="bt-bias-option" class="control-group hidden">
+        <label for="bt-bias-select">二元樹偏好</label>
+        <select id="bt-bias-select"></select>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button id="generate-btn">產生迷宮</button>
+      <button id="solve-btn" disabled>求解迷宮</button>
+      <button id="stop-btn" disabled>停止動畫</button>
+    </div>
+  </div>
+  <div class="canvas-container">
+    <canvas id="maze-canvas" width="800" height="600"></canvas>
+  </div>
+  <script src="bundle.js"></script>
+</body>
+</html>
