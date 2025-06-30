@@ -166,29 +166,55 @@ export class MazeSolver {
     this.width = this.height > 0 ? grid[0].length : 0;
   }
 
-  public solve(start: { x: number; y: number }, end: { x: number; y: number }): Cell[] {
-    const queue: Cell[] = [];
-    const parentMap = new Map<Cell, Cell | null>();
-    const visited = new Set<Cell>();
+  /**
+   * Heuristic function (Manhattan distance) for A*
+   */
+  private heuristic(a: Cell, b: Cell): number {
+    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  }
 
+  public solve(start: { x: number; y: number }, end: { x: number; y: number }): Cell[] {
     const startCell = this.grid[start.y][start.x];
     const endCell = this.grid[end.y][end.x];
 
-    queue.push(startCell);
-    visited.add(startCell);
-    parentMap.set(startCell, null);
+    // The set of nodes to be evaluated
+    const openSet: Cell[] = [startCell];
 
-    while (queue.length > 0) {
-      const currentCell = queue.shift()!;
+    // For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start to n currently known.
+    const cameFrom = new Map<Cell, Cell>();
+
+    // For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
+    const gScore = new Map<Cell, number>();
+    gScore.set(startCell, 0);
+
+    // For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
+    // how short a path from start to finish can be if it goes through n.
+    const fScore = new Map<Cell, number>();
+    fScore.set(startCell, this.heuristic(startCell, endCell));
+
+    while (openSet.length > 0) {
+      // Find the node in openSet having the lowest fScore[] value
+      let currentCell = openSet[0];
+      for (let i = 1; i < openSet.length; i++) {
+        if ((fScore.get(openSet[i]) ?? Infinity) < (fScore.get(currentCell) ?? Infinity)) {
+          currentCell = openSet[i];
+        }
+      }
+
       if (currentCell === endCell) {
+        // Reconstruct path
         const path: Cell[] = [];
         let current: Cell | null = endCell;
         while (current) {
           path.unshift(current);
-          current = parentMap.get(current) || null;
+          current = cameFrom.get(current) || null;
         }
         return path;
       }
+
+      // Remove currentCell from openSet
+      const index = openSet.indexOf(currentCell);
+      openSet.splice(index, 1);
 
       const { x, y, walls } = currentCell;
       const traversableNeighbors: Cell[] = [];
@@ -198,10 +224,16 @@ export class MazeSolver {
       if (!walls.left && x > 0) traversableNeighbors.push(this.grid[y][x - 1]);
 
       for (const neighbor of traversableNeighbors) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          parentMap.set(neighbor, currentCell);
-          queue.push(neighbor);
+        // tentative_gScore is the distance from start to the neighbor through current
+        const tentativeGScore = (gScore.get(currentCell) ?? Infinity) + 1;
+        if (tentativeGScore < (gScore.get(neighbor) ?? Infinity)) {
+          // This path to neighbor is better than any previous one. Record it!
+          cameFrom.set(neighbor, currentCell);
+          gScore.set(neighbor, tentativeGScore);
+          fScore.set(neighbor, tentativeGScore + this.heuristic(neighbor, endCell));
+          if (!openSet.includes(neighbor)) {
+            openSet.push(neighbor);
+          }
         }
       }
     }
