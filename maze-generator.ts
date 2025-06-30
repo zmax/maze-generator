@@ -53,44 +53,51 @@ export class MazeGenerator {
   /**
    * 產生迷宮的主要方法
    * @returns {Cell[][]} 代表迷宮的二維陣列
+   * @async
    */
-  public generate(): Cell[][] {
+  public async generate(): Promise<Cell[][]> {
     this.initializeGrid();
     switch (this.algorithm) {
       case 'prim':
-        return this.generateWithPrim();
+        return await this.generateWithPrim();
       case 'kruskal':
-        return this.generateWithKruskal();
+        return await this.generateWithKruskal();
       case 'wilson':
-        return this.generateWithWilson();
+        return await this.generateWithWilson();
       case 'growing-tree':
-        return this.generateWithGrowingTree();
+        return await this.generateWithGrowingTree();
       case 'binary-tree':
-        return this.generateWithBinaryTree();
+        return await this.generateWithBinaryTree();
       case 'aldous-broder':
-        return this.generateWithAldousBroder();
+        return await this.generateWithAldousBroder();
       case 'recursive-backtracker':
       case 'recursive-backtracker-biased':
       default:
-        return this.generateWithRecursiveBacktracker();
+        return await this.generateWithRecursiveBacktracker();
     }
   }
 
   /**
    * 使用「遞迴回溯」演算法產生迷宮。
    * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
    */
-  private generateWithRecursiveBacktracker(): Cell[][] {
+  private async generateWithRecursiveBacktracker(): Promise<Cell[][]> {
     // 1. 選擇一個起始儲存格
     const startCell = this.grid[0][0];
     startCell.visited = true;
     this.stack.push(startCell);
+    const onStep = this.options.onStep;
 
     // 2. 當堆疊不為空時，持續處理
     while (this.stack.length > 0) {
       // 查看堆疊頂端的儲存格，但不將其彈出
       const currentCell = this.stack[this.stack.length - 1];
       const neighbors = getUnvisitedNeighbors(currentCell, this.grid, this.width, this.height);
+
+      if (onStep) {
+        await onStep({ grid: this.grid, stack: [...this.stack], currentCell });
+      }
 
       // 3. 如果有未訪問的鄰居
       if (neighbors.length > 0) {
@@ -124,6 +131,9 @@ export class MazeGenerator {
       } else {
         // 如果沒有未訪問的鄰居，則從堆疊中彈出儲存格（回溯）
         this.stack.pop();
+        if (onStep) {
+          await onStep({ grid: this.grid, stack: [...this.stack] });
+        }
       }
     }
     
@@ -133,13 +143,15 @@ export class MazeGenerator {
   /**
    * 使用「普林演算法」(Prim's algorithm) 產生迷宮。
    * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
    */
-  private generateWithPrim(): Cell[][] {
+  private async generateWithPrim(): Promise<Cell[][]> {
     // 1. 選擇一個起始儲存格，並將其標記為迷宮的一部分。
     const startCell = this.grid[Math.floor(this.random() * this.height)][Math.floor(this.random() * this.width)];
     startCell.visited = true;
 
     // 2. 建立一個與迷宮相連的牆壁列表（稱為「邊界」）。
+    const onStep = this.options.onStep;
     const frontier: { from: Cell, to: Cell }[] = [];
     const addFrontier = (cell: Cell) => {
       const { x, y } = cell;
@@ -158,6 +170,10 @@ export class MazeGenerator {
 
       // If the cell on the other side is not yet part of the maze
       if (!to.visited) {
+        if (onStep) {
+          await onStep({ grid: this.grid, currentCell: to, activeSet: [from] });
+        }
+
         // 打通牆壁，建立通道
         removeWalls(from, to);
         // 將新的儲存格標記為迷宮的一部分
@@ -172,8 +188,9 @@ export class MazeGenerator {
   /**
    * 使用「克魯斯克爾演算法」(Kruskal's algorithm) 產生迷宮。
    * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
    */
-  private generateWithKruskal(): Cell[][] {
+  private async generateWithKruskal(): Promise<Cell[][]> {
     // 1. 建立一個包含所有內部牆壁的列表
     const walls: { c1: Cell, c2: Cell }[] = [];
     for (let y = 0; y < this.height; y++) {
@@ -191,6 +208,7 @@ export class MazeGenerator {
 
     // 3. 初始化並查集，將每個儲存格視為一個獨立的集合
     const dsu = new DisjointSet(this.grid.flat());
+    const onStep = this.options.onStep;
 
     // 4. 遍歷所有牆壁，如果牆壁兩側的儲存格不屬於同一個集合，則打通牆壁並合併集合
     for (const wall of walls) {
@@ -198,6 +216,9 @@ export class MazeGenerator {
       if (!dsu.connected(c1, c2)) {
         dsu.union(c1, c2);
         removeWalls(c1, c2);
+        if (onStep) {
+          await onStep({ grid: this.grid, activeSet: [c1, c2] });
+        }
       }
     }
 
@@ -207,12 +228,14 @@ export class MazeGenerator {
   /**
    * 使用「威爾遜演算法」(Wilson's algorithm) 產生迷宮。
    * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
    */
-  private generateWithWilson(): Cell[][] {
+  private async generateWithWilson(): Promise<Cell[][]> {
     // 1. 隨機選擇一個儲存格並將其標記為迷宮的一部分。
     const initialCell = this.grid[Math.floor(this.random() * this.height)][Math.floor(this.random() * this.width)];
     initialCell.visited = true;
 
+    const onStep = this.options.onStep;
     // 2. 建立一個包含所有未訪問儲存格的列表，並隨機排序以作為隨機遊走的起點。
     const unvisited = this.grid.flat().filter(c => !c.visited);
     for (let i = unvisited.length - 1; i > 0; i--) {
@@ -240,6 +263,10 @@ export class MazeGenerator {
           walkPath.push(next);
         }
         current = next;
+
+        if (onStep) {
+          await onStep({ grid: this.grid, walkPath: [...walkPath], currentCell: current });
+        }
       }
 
       // 4. 將完成的遊走路徑刻入迷宮中。
@@ -247,6 +274,9 @@ export class MazeGenerator {
         removeWalls(walkPath[i], walkPath[i + 1]);
         // Mark cells as visited now, so future walks can find the maze.
         walkPath[i].visited = true;
+        if (onStep) {
+          await onStep({ grid: this.grid, activeSet: [walkPath[i], walkPath[i+1]] });
+        }
       }
     }
 
@@ -257,8 +287,9 @@ export class MazeGenerator {
    * 使用「生長樹演算法」(Growing Tree algorithm) 產生迷宮。
    * 這個演算法是遞迴回溯法和普林演算法的綜合體。
    * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
    */
-  private generateWithGrowingTree(): Cell[][] {
+  private async generateWithGrowingTree(): Promise<Cell[][]> {
     // 1. 建立一個作用中儲存格的列表
     const activeSet: Cell[] = [];
 
@@ -266,6 +297,7 @@ export class MazeGenerator {
     const startCell = this.grid[Math.floor(this.random() * this.height)][Math.floor(this.random() * this.width)];
     startCell.visited = true;
     activeSet.push(startCell);
+    const onStep = this.options.onStep;
 
     // 3. 當作用中列表不為空時
     while (activeSet.length > 0) {
@@ -294,6 +326,10 @@ export class MazeGenerator {
       // 3b. 尋找該儲存格的未訪問鄰居
       const neighbors = getUnvisitedNeighbors(currentCell, this.grid, this.width, this.height);
 
+      if (onStep) {
+        await onStep({ grid: this.grid, activeSet: [...activeSet], currentCell });
+      }
+
       if (neighbors.length > 0) {
         // 3c. 如果有未訪問的鄰居，隨機選擇一個
         const nextCell = neighbors[Math.floor(this.random() * neighbors.length)];
@@ -313,14 +349,15 @@ export class MazeGenerator {
    * 使用「二元樹演算法」(Binary Tree algorithm) 產生迷宮。
    * 這是最簡單的演算法之一，速度極快，但會產生有強烈對角線偏向的迷宮。
    * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
    */
-  private generateWithBinaryTree(): Cell[][] {
+  private async generateWithBinaryTree(): Promise<Cell[][]> {
     const bias = this.options.binaryTreeBias!;
     const hasNorth = bias.includes('north');
     const hasSouth = bias.includes('south');
     const hasWest = bias.includes('west');
     const hasEast = bias.includes('east');
-
+    const onStep = this.options.onStep;
     for (const row of this.grid) {
       for (const cell of row) {
         const neighborsToCarve: Cell[] = [];
@@ -342,6 +379,9 @@ export class MazeGenerator {
         if (neighborsToCarve.length > 0) {
           const neighbor = neighborsToCarve[Math.floor(this.random() * neighborsToCarve.length)];
           removeWalls(cell, neighbor);
+          if (onStep) {
+            await onStep({ grid: this.grid, currentCell: cell, activeSet: [neighbor] });
+          }
         }
       }
     }
@@ -352,15 +392,16 @@ export class MazeGenerator {
    * 使用「Aldous-Broder 演算法」產生迷宮。
    * 這是一種透過純粹的隨機遊走來產生均勻生成樹的演算法。
    * @returns {Cell[][]} 產生的迷宮網格。
+   * @async
    */
-  private generateWithAldousBroder(): Cell[][] {
+  private async generateWithAldousBroder(): Promise<Cell[][]> {
     // 1. 選擇一個隨機的起始儲存格
     let currentCell = this.grid[Math.floor(this.random() * this.height)][Math.floor(this.random() * this.width)];
     currentCell.visited = true;
 
     // 2. 初始化未訪問儲存格的計數
     let unvisitedCount = this.width * this.height - 1;
-
+    const onStep = this.options.onStep;
     // 3. 當還有未訪問的儲存格時，持續進行隨機遊走
     while (unvisitedCount > 0) {
       // 3a. 隨機選擇一個鄰居
@@ -376,6 +417,10 @@ export class MazeGenerator {
 
       // 3c. 移動到下一個儲存格，不論它是否已被訪問
       currentCell = nextCell;
+
+      if (onStep) {
+        await onStep({ grid: this.grid, currentCell });
+      }
     }
 
     return this.grid;

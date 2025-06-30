@@ -38,6 +38,13 @@ class PriorityQueue {
     isEmpty() {
         return this.heap.length === 0;
     }
+    /**
+     * Returns the items in the queue as an array, for visualization purposes.
+     * @returns {T[]}
+     */
+    getItems() {
+        return this.heap.map(node => node.item);
+    }
     getParentIndex(i) {
         return Math.floor((i - 1) / 2);
     }

@@ -16,6 +16,7 @@
   - **二元樹演算法 (Binary Tree Algorithm)**: 速度極快，可配置偏好方向（例如北方/西方）以產生不同紋理。
   - **Aldous-Broder 演算法**: 另一種產生均勻生成樹的演算法，原理簡單但效率較低。
 - **高效求解器**: 使用高效的「雙向 A* 演算法」來尋找從起點到終點的最短路徑。
+- **逐步視覺化**: 支援在生成過程中傳入回呼函式，可用於即時視覺化或動畫。
 - **主控台視覺化**: 將生成的迷宮和解答路徑以 ASCII 形式清晰地繪製在主控台中。
 - **可重現的隨機性**: 可選的隨機種子允許您重現完全相同的迷宮。
 - **零依賴**: 純 TypeScript 實現，不需任何外部函式庫。
@@ -48,14 +49,19 @@
 import { MazeGenerator } from './maze-generator';
 import { MazeSolver } from './maze-solver';
 import { drawMazeToConsole } from './maze-drawer';
-import type { Point, MazeGeneratorOptions } from './types';
+import type { Point, MazeGeneratorOptions, GenerationStepCallback } from './types';
 
 // 1. 選擇一種演算法，產生一個 20x10 的迷宮
+const onStep: GenerationStepCallback = async (step) => {
+  // 在這裡加入你的視覺化邏輯，例如使用 Canvas 繪圖
+  // console.clear();
+  // drawMazeToConsole(step.grid, step.stack || step.activeSet || step.walkPath);
+  // await new Promise(r => setTimeout(r, 10));
+};
 const options: MazeGeneratorOptions = {
   seed: 12345,
-  growingTreeStrategy: 'newest', // for 'growing-tree': 'newest' | 'random' | 'oldest'
-  straightBias: 0.9,             // for 'recursive-backtracker-biased': a value between 0.0 and 1.0
-  binaryTreeBias: 'south-east', // for 'binary-tree': 'north-west' | 'north-east' | 'south-west' | 'south-east'
+  onStep: onStep, // 傳入視覺化回呼函式
+  // ... 其他選項
 };
 const mazeGenerator = new MazeGenerator(20, 10, 'aldous-broder', options);
 const mazeGrid = mazeGenerator.generate();

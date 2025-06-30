@@ -46,6 +46,20 @@ export type GrowingTreeStrategy = 'newest' | 'random' | 'oldest';
 export type BinaryTreeBias = 'north-west' | 'north-east' | 'south-west' | 'south-east';
 
 /**
+ * Represents the state of the maze at a single step of generation.
+ */
+export interface GenerationStep {
+  grid: Cell[][];
+  // Optional context for visualization
+  currentCell?: Cell; // The cell being processed
+  activeSet?: Cell[]; // For algorithms like Prim's or Growing Tree
+  stack?: Cell[]; // For Recursive Backtracker
+  walkPath?: Cell[]; // For Wilson's
+}
+
+export type GenerationStepCallback = (step: GenerationStep) => Promise<void> | void;
+
+/**
  * MazeGenerator 的可選設定
  */
 export interface MazeGeneratorOptions {
@@ -57,4 +71,37 @@ export interface MazeGeneratorOptions {
    */
   straightBias?: number;
   binaryTreeBias?: BinaryTreeBias;
+  /**
+   * A callback function that is invoked at each step of the maze generation process.
+   * Useful for visualization.
+   */
+  onStep?: GenerationStepCallback;
+}
+
+/**
+ * Represents the state of the maze at a single step of solving.
+ */
+export interface SolverStep {
+  grid: Cell[][];
+  // Optional context for visualization
+  openSetForward: Cell[];
+  closedSetForward: Cell[];
+  openSetBackward: Cell[];
+  closedSetBackward: Cell[];
+  currentForward?: Cell;
+  currentBackward?: Cell;
+  meetingNode?: Cell;
+}
+
+export type SolverStepCallback = (step: SolverStep) => Promise<void> | void;
+
+/**
+ * MazeSolver 的可選設定
+ */
+export interface MazeSolverOptions {
+  /**
+   * A callback function that is invoked at each step of the maze solving process.
+   * Useful for visualization.
+   */
+  onStep?: SolverStepCallback;
 }

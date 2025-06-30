@@ -39,6 +39,14 @@ export class PriorityQueue<T> {
     return this.heap.length === 0;
   }
 
+  /**
+   * Returns the items in the queue as an array, for visualization purposes.
+   * @returns {T[]}
+   */
+  public getItems(): T[] {
+    return this.heap.map(node => node.item);
+  }
+
   private getParentIndex(i: number): number {
     return Math.floor((i - 1) / 2);
   }

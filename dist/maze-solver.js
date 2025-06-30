@@ -9,10 +9,12 @@ class MazeSolver {
     grid;
     width;
     height;
-    constructor(grid) {
+    options;
+    constructor(grid, options = {}) {
         this.grid = grid;
         this.height = grid.length;
         this.width = this.height > 0 ? grid[0].length : 0;
+        this.options = options;
     }
     /**
      * A* 演算法的啟發函式 (使用曼哈頓距離)
@@ -20,7 +22,7 @@ class MazeSolver {
     heuristic(a, b) {
         return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
     }
-    solve(start, end) {
+    async solve(start, end) {
         // 為了向後相容，保留舊的 solve 方法，但使其呼叫新的雙向版本
         return this.solveBidirectional(start, end);
     }
@@ -28,14 +30,16 @@ class MazeSolver {
      * 使用「雙向 A* 演算法」來解決迷宮，效能更佳。
      * @param start 起點座標
      * @param end 終點座標
+     * @async
      * @returns {Cell[]} 從起點到終點的路徑，如果找不到則回傳空陣列。
      */
-    solveBidirectional(start, end) {
+    async solveBidirectional(start, end) {
         const startCell = this.grid[start.y][start.x];
         const endCell = this.grid[end.y][end.x];
         if (startCell === endCell) {
             return [startCell];
         }
+        const onStep = this.options.onStep;
         // --- 前向搜尋的資料結構 ---
         const openSetForward = new priority_queue_1.PriorityQueue();
         const closedSetForward = new Set();
@@ -62,6 +66,16 @@ class MazeSolver {
                 meetingNode = currentForward;
                 break;
             }
+            if (onStep) {
+                await onStep({
+                    grid: this.grid,
+                    openSetForward: openSetForward.getItems(),
+                    closedSetForward: Array.from(closedSetForward),
+                    openSetBackward: openSetBackward.getItems(),
+                    closedSetBackward: Array.from(closedSetBackward),
+                    currentForward: currentForward,
+                });
+            }
             this._expandNeighbors(currentForward, endCell, gScoreForward, cameFromForward, openSetForward);
             // --- 後向搜尋步驟 ---
             const currentBackward = openSetBackward.extractMin();
@@ -73,12 +87,33 @@ class MazeSolver {
                 meetingNode = currentBackward;
                 break;
             }
+            if (onStep) {
+                await onStep({
+                    grid: this.grid,
+                    openSetForward: openSetForward.getItems(),
+                    closedSetForward: Array.from(closedSetForward),
+                    openSetBackward: openSetBackward.getItems(),
+                    closedSetBackward: Array.from(closedSetBackward),
+                    currentForward: currentForward,
+                    currentBackward: currentBackward,
+                });
+            }
             this._expandNeighbors(currentBackward, startCell, gScoreBackward, cameFromBackward, openSetBackward);
         }
         if (meetingNode) {
             const pathForward = this._reconstructPath(cameFromForward, meetingNode);
             const pathBackward = this._reconstructPath(cameFromBackward, meetingNode);
             pathBackward.reverse();
+            if (onStep) {
+                await onStep({
+                    grid: this.grid,
+                    openSetForward: [],
+                    closedSetForward: Array.from(closedSetForward),
+                    openSetBackward: [],
+                    closedSetBackward: Array.from(closedSetBackward),
+                    meetingNode: meetingNode,
+                });
+            }
             return pathForward.concat(pathBackward.slice(1));
         }
         return []; // 找不到路徑

@@ -4,9 +4,9 @@ exports.drawMazeToConsole = drawMazeToConsole;
 /**
  * 將迷宮資料結構繪製到主控台
  * @param grid 迷宮的二維陣列
- * @param path (可選) 要繪製的路徑，儲存格陣列
+ * @param pathOrHighlights (可選) 要繪製的路徑，或是一個包含多個高亮集合的物件
  */
-function drawMazeToConsole(grid, path = []) {
+function drawMazeToConsole(grid, pathOrHighlights = []) {
     const height = grid.length;
     if (height === 0)
         return;
@@ -14,7 +14,9 @@ function drawMazeToConsole(grid, path = []) {
     if (width === 0)
         return;
     const outputLines = [];
-    const pathSet = new Set(path);
+    const highlights = Array.isArray(pathOrHighlights)
+        ? { path: new Set(pathOrHighlights) }
+        : pathOrHighlights;
     // 繪製頂部邊界
     let topBorder = '+';
     for (let x = 0; x < width; x++) {
@@ -27,7 +29,18 @@ function drawMazeToConsole(grid, path = []) {
         let rowStr = grid[y][0].walls.left ? '|' : ' '; // 左邊界
         for (let x = 0; x < width; x++) {
             const cell = grid[y][x];
-            const cellContent = pathSet.has(cell) ? ' . ' : '   ';
+            let cellContent = '   ';
+            if (highlights.backwardClosed?.has(cell))
+                cellContent = ' X ';
+            else if (highlights.forwardClosed?.has(cell))
+                cellContent = ' x ';
+            if (highlights.backwardOpen?.has(cell))
+                cellContent = ' O ';
+            else if (highlights.forwardOpen?.has(cell))
+                cellContent = ' o ';
+            if (highlights.path?.has(cell)) {
+                cellContent = ' . ';
+            }
             rowStr += cellContent; // 儲存格內部空間
             rowStr += grid[y][x].walls.right ? '|' : ' ';
         }
