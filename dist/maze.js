@@ -3,6 +3,78 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MazeSolver = exports.MazeGenerator = void 0;
 exports.drawMazeToConsole = drawMazeToConsole;
 /**
+ * 並查集 (Disjoint Set Union) 資料結構，用於 Kruskal 演算法。
+ * 透過「按秩合併」和「路徑壓縮」進行了最佳化。
+ * @template T 集合中元素的類型。
+ */
+class DisjointSet {
+    parent = new Map();
+    rank = new Map();
+    /**
+     * @param items 初始元素陣列，每個元素都會被建立成一個獨立的集合。
+     */
+    constructor(items = []) {
+        items.forEach(item => this.makeSet(item));
+    }
+    /**
+     * 建立一個只包含單一元素的新集合。
+     * @param item 要加入的元素。
+     */
+    makeSet(item) {
+        if (!this.parent.has(item)) {
+            this.parent.set(item, item);
+            this.rank.set(item, 0);
+        }
+    }
+    /**
+     * 尋找一個元素的代表元素（根節點），並在過程中進行路徑壓縮。
+     * @param item 要尋找的元素。
+     * @returns {T} 該元素所在集合的代表元素。
+     */
+    find(item) {
+        const root = this.parent.get(item);
+        if (root === item) {
+            return item;
+        }
+        const representative = this.find(root);
+        this.parent.set(item, representative); // 路徑壓縮
+        return representative;
+    }
+    /**
+     * 合併兩個元素所在的集合。
+     * @param item1 第一個元素。
+     * @param item2 第二個元素。
+     */
+    union(item1, item2) {
+        const root1 = this.find(item1);
+        const root2 = this.find(item2);
+        if (root1 !== root2) {
+            const rank1 = this.rank.get(root1);
+            const rank2 = this.rank.get(root2);
+            // 按秩合併
+            if (rank1 < rank2) {
+                this.parent.set(root1, root2);
+            }
+            else if (rank1 > rank2) {
+                this.parent.set(root2, root1);
+            }
+            else {
+                this.parent.set(root2, root1);
+                this.rank.set(root1, rank1 + 1);
+            }
+        }
+    }
+    /**
+     * 檢查兩個元素是否在同一個集合中。
+     * @param item1 第一個元素。
+     * @param item2 第二個元素。
+     * @returns {boolean} 如果在同一個集合則回傳 true，否則回傳 false。
+     */
+    connected(item1, item2) {
+        return this.find(item1) === this.find(item2);
+    }
+}
+/**
  * 一個使用多種演算法來產生迷宮的類別。
  */
 class MazeGenerator {
@@ -155,21 +227,13 @@ class MazeGenerator {
             const j = Math.floor(Math.random() * (i + 1));
             [walls[i], walls[j]] = [walls[j], walls[i]];
         }
-        // 3. 設定並查集 (Disjoint Set Union) 資料結構
-        const parent = new Map();
-        const find = (cell) => {
-            if (parent.get(cell) === cell)
-                return cell;
-            const root = find(parent.get(cell));
-            parent.set(cell, root); // 路徑壓縮優化
-            return root;
-        };
-        this.grid.flat().forEach(cell => parent.set(cell, cell));
+        // 3. 初始化並查集，將每個儲存格視為一個獨立的集合
+        const dsu = new DisjointSet(this.grid.flat());
         // 4. 遍歷所有牆壁，如果牆壁兩側的儲存格不屬於同一個集合，則打通牆壁並合併集合
         for (const wall of walls) {
             const { c1, c2 } = wall;
-            if (find(c1) !== find(c2)) {
-                parent.set(find(c1), find(c2)); // Union
+            if (!dsu.connected(c1, c2)) {
+                dsu.union(c1, c2);
                 this.removeWalls(c1, c2);
             }
         }
