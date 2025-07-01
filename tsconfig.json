@@ -1,16 +1,37 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "skipLibCheck": true,
-    "outDir": "./dist"
+    /* 基本選項 */
+    "target": "es2020", // 編譯到較新的 JavaScript 版本
+    "module": "commonjs", // Node.js 使用的模組系統
+    "jsx": "react", // 核心修正：告訴 TypeScript 如何處理 JSX
+    "outDir": "./dist", // Node.js 版本的輸出目錄
+    "rootDir": "./", // 專案根目錄
+
+    /* 嚴格的型別檢查選項 */
+    "strict": true, // 啟用所有嚴格的型別檢查
+
+    /* 模組解析選項 */
+    "esModuleInterop": true, // 改善 CommonJS 和 ES 模組之間的相容性
+
+    /* 其他選項 */
+    "skipLibCheck": true, // 跳過對依賴庫 (d.ts) 的型別檢查
+    "forceConsistentCasingInFileNames": true // 強制檔案名稱大小寫一致
   },
-  "ts-node": {
-    "esm": true,
-    "transpileOnly": true
-  }
+  "include": [
+    // 僅包含 Node.js 執行環境所需的檔案
+    "maze.ts",
+    "maze-generator.ts",
+    "maze-solver.ts",
+    "maze-drawer.ts",
+    "maze-utils.ts",
+    "types.ts",
+    "data-structures/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "web", // 排除由 esbuild 處理的前端程式碼
+    "public",
+    "__tests__"
+  ]
 }

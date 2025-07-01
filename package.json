@@ -4,8 +4,8 @@
   "description": "",
   "main": "dist/maze.js",
   "scripts": {
-    "start": "esbuild --serve=8000 --servedir=public",
-    "build": "esbuild web/main.ts --bundle --outfile=public/bundle.js --minify",
+    "start": "esbuild web/main.tsx --bundle --outfile=public/bundle.js --servedir=public --jsx-factory=React.createElement --jsx-fragment=React.Fragment",
+    "build": "esbuild web/main.tsx --bundle --outfile=public/bundle.js --minify --jsx-factory=React.createElement --jsx-fragment=React.Fragment",
     "start:node": "pnpm build:node && node dist/maze.js",
     "test": "jest",
     "build:node": "tsc"
@@ -17,10 +17,16 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.12",
+    "@types/react": "^17.0.80",
+    "@types/react-dom": "^17.0.25",
     "esbuild": "^0.21.3",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   }
 }
