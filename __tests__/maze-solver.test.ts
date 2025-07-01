@@ -66,4 +66,12 @@ describe('MazeSolver', () => {
     expect(path[0]).toBe(grid[start.y][start.x]);
     expect(path[path.length - 1]).toBe(grid[end.y][end.x]);
   });
+
+  it('should call the onStep callback during solving', async () => {
+    const onStepMock = jest.fn();
+    const grid = await new MazeGenerator(5, 5, 'kruskal').generate();
+    const solver = new MazeSolver(grid, { onStep: onStepMock });
+    await solver.solve({ x: 0, y: 0 }, { x: 4, y: 4 });
+    expect(onStepMock.mock.calls.length).toBeGreaterThan(0);
+  });
 });

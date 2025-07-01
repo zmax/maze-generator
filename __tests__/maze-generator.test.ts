@@ -115,4 +115,11 @@ describe('MazeGenerator', () => {
 
     expect(strNW).not.toEqual(strSE);
   });
+
+  it('should call the onStep callback during generation', async () => {
+    const onStepMock = jest.fn();
+    const generator = new MazeGenerator(3, 3, 'prim', { onStep: onStepMock });
+    await generator.generate();
+    expect(onStepMock).toHaveBeenCalled();
+  });
 });
